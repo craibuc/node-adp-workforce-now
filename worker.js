@@ -8,6 +8,7 @@ class Worker {
     /**
      * 
      * @returns 
+     * @url https://developers.adp.com/articles/api/hcm-offrg-wfn/hcm-offrg-wfn-hr-workers-v2-workers/apiexplorer?operation=GET/hr/v2/workers
      */
     all = async () => {
     
@@ -43,6 +44,7 @@ class Worker {
      * 
      * @param {*} associateOID 
      * @returns 
+     * @url https://developers.adp.com/articles/api/hcm-offrg-wfn/hcm-offrg-wfn-hr-workers-v2-workers/apiexplorer?operation=GET/hr/v2/workers/{aoid}
      */
     one = async (associateOID) => {
     
@@ -60,6 +62,7 @@ class Worker {
      * 
      * @param {*} param0 
      * @returns 
+     * @url https://developers.adp.com/articles/api/hcm-offrg-wfn/hcm-offrg-wfn-hr-workers-lifecycle-management-v2-workers-lifecycle-management/apiexplorer?operation=POST/events/hr/v1/worker.hire
      */
     hire = async ({givenName, familyName, birthDate, genderCode, ssn, lineOne, lineTwo, cityName, stateCode, postalCode, hireDate, payrollGroupCode}) => {
 
@@ -126,6 +129,7 @@ class Worker {
     /**
      * 
      * @returns 
+     * @url https://developers.adp.com/articles/api/hcm-offrg-wfn/hcm-offrg-wfn-hr-workers-lifecycle-management-v2-workers-lifecycle-management/apiexplorer?operation=GET/events/hr/v1/worker.hire/meta
      */
     hire_meta = async () => {
 
@@ -137,6 +141,7 @@ class Worker {
      * 
      * @param {*} param0 
      * @returns 
+     * @url https://developers.adp.com/articles/api/hcm-offrg-wfn/hcm-offrg-wfn-hr-workers-lifecycle-management-v2-workers-lifecycle-management/apiexplorer?operation=POST/events/hr/v1/worker.rehire
      */
     rehire = async ({associateOID, rehireDate, effectiveDate, reasonCode = 'IMPORT'}) => {
 
@@ -182,6 +187,7 @@ class Worker {
      * 
      * @param {*} param0 
      * @returns 
+     * @url https://developers.adp.com/articles/api/hcm-offrg-wfn/hcm-offrg-wfn-hr-workers-work-assignment-management-v2-workers-work-assignment-management/apiexplorer?operation=POST/events/hr/v1/worker.work-assignment.terminate
      */
     terminate = async ({workAssignmentID, comments, terminationDate, reasonCode}) => {
 
