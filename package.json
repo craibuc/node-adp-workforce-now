@@ -1,0 +1,31 @@
+{
+  "name": "adp-workforce-now",
+  "version": "1.0.0",
+  "description": "Node.js library to interact with ADP's Workforce Now API",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --testTimeout 10000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/craibuc/node-adp-workforce-now.git"
+  },
+  "keywords": [
+    "adp",
+    "workforce-now",
+    "api",
+    "now"
+  ],
+  "author": "Craig Buchanan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/craibuc/node-adp-workforce-now/issues"
+  },
+  "homepage": "https://github.com/craibuc/node-adp-workforce-now#readme",
+  "dependencies": {
+    "https": "^1.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0"
+  }
+}
