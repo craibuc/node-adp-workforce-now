@@ -1,0 +1,22 @@
+{
+    "events": [
+        {
+            "data": {
+                "output": {
+                    "worker": {
+                        "associateOID": "G3BJDMRVTTP9GTMX",
+                        "workerDates": {
+                            "rehireDate": "2023-04-06"
+                        },
+                        "workerStatus": {
+                            "reasonCode": {
+                                "codeValue": "IMPORT"
+                            }
+                        }
+                    }
+                }
+            },
+            "links": []
+        }
+    ]
+}

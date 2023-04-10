@@ -1,0 +1,51 @@
+{
+    "eventContext": {
+        "worker": {
+            "associateOID": "G3BJDMRVTTP9GTMX",
+            "workAssignment": {
+                "itemID": "K4P011981"
+            }
+        }
+    },
+    "output": {
+        "comments": [
+            {
+                "commentCode": {
+                    "codeValue": "Looking for better growth and oppurtunities"
+                }
+            }
+        ],
+        "worker": {
+            "associateOID": "G3BJDMRVTTP9GTMX",
+            "workerID": {
+                "idValue": "K4P011981",
+                "schemeCode": {
+                    "codeValue": "",
+                    "shortName": ""
+                }
+            },
+            "workAssignment": {
+                "terminationDate": "2023-04-06",
+                "lastWorkedDate": "2023-04-06",
+                "assignmentStatus": {
+                    "statusCode": {},
+                    "reasonCode": {
+                        "codeValue": "T"
+                    }
+                },
+                "rehireEligibleIndicator": true,
+                "severanceEligibleIndicator": true
+            }
+        }
+    },
+    "isReadOnly": false,
+    "exceptionMessages": [
+        {
+            "messageType": "error",
+            "message": "Employee position with id K4P011981 is already terminated",
+            "contextType": "GLOBAL"
+        }
+    ],
+    "requestResponseId": "b9ca8b01-f9d6-4937-9e7c-ae449f5dd867",
+    "serverTimeTaken": "50"
+}

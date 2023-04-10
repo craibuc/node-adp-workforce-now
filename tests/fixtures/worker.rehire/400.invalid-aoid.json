@@ -1,0 +1,61 @@
+{
+    "confirmMessage": {
+        "confirmMessageID": {
+            "idValue": "0EB80F0A-C41D-265D-452B-4CA55A52F716",
+            "schemeName": "confirmMessageID",
+            "schemeAgencyName": "WFN"
+        },
+        "createDateTime": "2023-04-06T18:01:55Z",
+        "requestReceiptDateTime": "2023-04-06T18:01:55Z",
+        "protocolStatusCode": {
+            "codeValue": "400",
+            "shortName": "400"
+        },
+        "requestStatusCode": {
+            "codeValue": "failed"
+        },
+        "requestMethodCode": {
+            "codeValue": "POST"
+        },
+        "sessionID": {
+            "idValue": "OuzqBm6XhM3xqMfbzkelC5jFFMA=",
+            "schemeName": "sessionID",
+            "schemeAgencyName": "WFN"
+        },
+        "requestETag": "No eTag in request",
+        "requestLink": {
+            "href": "https://pulsar-marketplace-prod.es.oneadp.com:443/wfn/mobility/rest/events/hr/v1/worker.rehire",
+            "rel": "related",
+            "mediaType": "application/json",
+            "method": "POST",
+            "encType": "application/json"
+        },
+        "resourceMessages": [
+            {
+                "resourceMessageID": {
+                    "idValue": "events/hr/v1/worker.rehire",
+                    "schemeName": "processMessageID",
+                    "schemeAgencyName": "WFN"
+                },
+                "resourceStatusCode": {
+                    "codeValue": "failed"
+                },
+                "processMessages": [
+                    {
+                        "processMessageID": {
+                            "idValue": "errors.invalid",
+                            "schemeName": "processMessageID",
+                            "schemeAgencyName": "WFN"
+                        },
+                        "messageTypeCode": {
+                            "codeValue": "error"
+                        },
+                        "userMessage": {
+                            "messageTxt": "associateOID is invalid."
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}

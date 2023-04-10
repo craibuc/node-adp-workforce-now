@@ -1,0 +1,48 @@
+{
+    "exceptionMessages": [],
+    "requestResponseId": null,
+    "serverTimeTaken": null,
+    "eventContext": {
+        "worker": {
+            "associateOID": "G3BJDMRVTTP9GTMX",
+            "workAssignment": {
+                "itemID": "K4P011981"
+            }
+        }
+    },
+    "transform": null,
+    "output": {
+        "comments": [
+            {
+                "commentCode": {
+                    "codeValue": "Looking for better growth and oppurtunities"
+                }
+            }
+        ],
+        "worker": {
+            "associateOID": "G3BJDMRVTTP9GTMX",
+            "workerID": {
+                "idValue": "K4P011981",
+                "schemeCode": {
+                    "codeValue": "",
+                    "shortName": ""
+                }
+            },
+            "workAssignment": {
+                "terminationDate": "2023-04-06",
+                "lastWorkedDate": "2023-04-06",
+                "assignmentStatus": {
+                    "statusCode": {
+                        "codeValue": "R"
+                    },
+                    "reasonCode": {
+                        "codeValue": "T"
+                    }
+                },
+                "rehireEligibleIndicator": true,
+                "severanceEligibleIndicator": true
+            }
+        }
+    },
+    "readOnly": false
+}
