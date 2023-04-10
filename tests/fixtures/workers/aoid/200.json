@@ -1,0 +1,240 @@
+{
+    "workers": [
+        {
+            "associateOID": "ABCDEFGHIJKLMNOP",
+            "workerID": {
+                "idValue": "CM2UQZLLN"
+            },
+            "person": {
+                "birthDate": "1966-03-29",
+                "genderCode": {
+                    "codeValue": "M",
+                    "shortName": "Male",
+                    "longName": "Male"
+                },
+                "disabledIndicator": false,
+                "preferredName": {},
+                "ethnicityCode": {
+                    "codeValue": "4",
+                    "shortName": "4",
+                    "longName": "Not Hispanic or Latino"
+                },
+                "raceCode": {
+                    "identificationMethodCode": {
+                        "codeValue": "VID",
+                        "shortName": "Visual ID"
+                    },
+                    "codeValue": "1",
+                    "shortName": "White",
+                    "longName": "White"
+                },
+                "militaryClassificationCodes": [],
+                "governmentIDs": [
+                    {
+                        "itemID": "33325352N",
+                        "idValue": "111-22-3333",
+                        "nameCode": {
+                            "codeValue": "SSN",
+                            "longName": "Social Security Number"
+                        },
+                        "countryCode": "US"
+                    }
+                ],
+                "legalName": {
+                    "givenName": "First",
+                    "familyName1": "Last",
+                    "formattedName": "Last, First"
+                },
+                "legalAddress": {
+                    "nameCode": {
+                        "codeValue": "Personal Address 1",
+                        "shortName": "Personal Address 1",
+                        "longName": "Personal Address 1"
+                    },
+                    "lineOne": "1234 Maple Street",
+                    "cityName": "Minneapolis",
+                    "countrySubdivisionLevel1": {
+                        "subdivisionType": "StateTerritory",
+                        "codeValue": "MN",
+                        "shortName": "Minnesota"
+                    },
+                    "countrySubdivisionLevel2": {
+                        "subdivisionType": "County",
+                        "codeValue": "Hennepin County",
+                        "shortName": "Hennepin County"
+                    },
+                    "countryCode": "US",
+                    "postalCode": "54321"
+                },
+                "communication": {
+                    "mobiles": [
+                        {
+                            "itemID": "2746199184_1",
+                            "nameCode": {
+                                "codeValue": "Personal Cell",
+                                "shortName": "Personal Cell"
+                            },
+                            "countryDialing": "1",
+                            "areaDialing": "612",
+                            "dialNumber": "1234567",
+                            "access": "1",
+                            "formattedNumber": "(612) 123-4567"
+                        }
+                    ],
+                    "emails": [
+                        {
+                            "nameCode": {
+                                "codeValue": "Personal E-mail",
+                                "shortName": "Personal E-mail"
+                            },
+                            "emailUri": "first.last@domain.tld",
+                            "notificationIndicator": true
+                        }
+                    ]
+                }
+            },
+            "workerDates": {
+                "originalHireDate": "2020-04-06",
+                "terminationDate": "2023-04-06"
+            },
+            "workerStatus": {
+                "statusCode": {
+                    "codeValue": "Terminated"
+                }
+            },
+            "workAssignments": [
+                {
+                    "itemID": "33325352N",
+                    "primaryIndicator": true,
+                    "hireDate": "2023-04-06",
+                    "actualStartDate": "2020-04-06",
+                    "terminationDate": "2023-04-06",
+                    "assignmentStatus": {
+                        "statusCode": {
+                            "codeValue": "T",
+                            "shortName": "Retired",
+                            "longName": "Retired"
+                        },
+                        "reasonCode": {
+                            "codeValue": "T",
+                            "shortName": "Early Retirement"
+                        },
+                        "effectiveDate": "2023-04-06"
+                    },
+                    "voluntaryIndicator": false,
+                    "workerTypeCode": {
+                        "codeValue": "FTR",
+                        "shortName": "Full-time Regular"
+                    },
+                    "jobCode": {
+                        "codeValue": "HR DEFAL",
+                        "shortName": "HR Default"
+                    },
+                    "jobTitle": "HR Default",
+                    "occupationalClassifications": [
+                        {
+                            "nameCode": {
+                                "codeValue": "EEOC",
+                                "shortName": "EEOC"
+                            },
+                            "classificationCode": {
+                                "codeValue": "2",
+                                "shortName": "Professionals"
+                            }
+                        }
+                    ],
+                    "positionID": "K4P011981",
+                    "homeOrganizationalUnits": [
+                        {
+                            "nameCode": {
+                                "codeValue": "000009",
+                                "shortName": "Finance/Accounting"
+                            },
+                            "typeCode": {
+                                "codeValue": "Department",
+                                "shortName": "Department"
+                            }
+                        }
+                    ],
+                    "assignedOrganizationalUnits": [
+                        {
+                            "nameCode": {
+                                "codeValue": "000009",
+                                "shortName": "Finance/Accounting"
+                            },
+                            "typeCode": {
+                                "codeValue": "Department",
+                                "shortName": "Department"
+                            }
+                        }
+                    ],
+                    "workerTimeProfile": {
+                        "timeAndAttendanceIndicator": true,
+                        "timeZoneCode": "America/Chicago"
+                    },
+                    "payCycleCode": {
+                        "codeValue": "W",
+                        "shortName": "Weekly"
+                    },
+                    "baseRemuneration": {
+                        "annualRateAmount": {
+                            "nameCode": {
+                                "codeValue": "ANNUAL",
+                                "shortName": "ANNUAL"
+                            },
+                            "amountValue": 123456.00,
+                            "currencyCode": "USD"
+                        },
+                        "payPeriodRateAmount": {
+                            "nameCode": {
+                                "codeValue": "Salary",
+                                "shortName": "Salary"
+                            },
+                            "amountValue": 1000.00,
+                            "currencyCode": "USD"
+                        },
+                        "effectiveDate": "2020-04-06"
+                    },
+                    "payrollProcessingStatusCode": {
+                        "shortName": "Paid"
+                    },
+                    "payrollGroupCode": "K4P",
+                    "payrollScheduleGroupID": "Use Period End Date 1 on checks",
+                    "payrollFileNumber": "012345",
+                    "customFieldGroup": {
+                        "codeFields": [
+                            {
+                                "itemID": "1277735312_1717",
+                                "nameCode": {
+                                    "codeValue": "payrollDataControl",
+                                    "shortName": "payrollDataControl"
+                                },
+                                "codeValue": "PT  ",
+                                "shortName": "PT   - Part time not eligible for PTO"
+                            }
+                        ]
+                    },
+                    "managementPositionIndicator": false
+                }
+            ],
+            "customFieldGroup": {
+                "indicatorFields": [
+                    {
+                        "itemID": "2634759966_6975",
+                        "nameCode": {
+                            "codeValue": "ADA Certificate",
+                            "shortName": "ADA Certificate"
+                        }
+                    }
+                ]
+            },
+            "_languageCode": {
+                "codeValue": "en_US",
+                "shortName": "en_US",
+                "longName": "English (United States)"
+            }
+        }
+    ],
+    "meta": null,
+    "confirmMessage": null
+}

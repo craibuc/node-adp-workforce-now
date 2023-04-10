@@ -1,0 +1,51 @@
+{
+    "confirmMessage": {
+        "confirmMessageID": {
+            "idValue": "45221C70-A651-9C4D-0D69-8C45A744E12A",
+            "schemeName": "confirmMessageID",
+            "schemeAgencyName": "WFN"
+        },
+        "createDateTime": "2023-04-06T18:04:26.691+0000",
+        "requestReceiptDateTime": "2023-04-06T18:04:26.691+0000",
+        "protocolStatusCode": {
+            "codeValue": "403",
+            "shortName": "403"
+        },
+        "requestStatusCode": {
+            "codeValue": "failed"
+        },
+        "requestMethodCode": {
+            "codeValue": "GET"
+        },
+        "requestLink": {
+            "href": "http://pulsar-marketplace-prod.es.oneadp.com/associate/metaservices/hr/v2/workers/G3BJDMRVTTP9GTMX-x",
+            "rel": "related",
+            "method": "GET"
+        },
+        "processMessages": [],
+        "resourceMessages": [
+            {
+                "resourceMessageID": {
+                    "idValue": "hr/v2/workers/G3BJDMRVTTP9GTMX-x",
+                    "schemeName": "resourceMessageID",
+                    "schemeAgencyName": "WFN"
+                },
+                "processMessages": [
+                    {
+                        "resourceStatusCode": {
+                            "codeValue": "error"
+                        },
+                        "userMessage": {
+                            "messageTxt": "Forbidden"
+                        }
+                    }
+                ]
+            }
+        ]
+    },
+    "status": "success",
+    "skipMetadataEnvelope": true,
+    "requestKeys": [],
+    "statusFailure": false,
+    "statusSuccess": true
+}
