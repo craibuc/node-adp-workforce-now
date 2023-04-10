@@ -10,7 +10,8 @@ nvm exec v16 npm test -- adp_client.test.js
 run the tests in this file using nvm (node version manager)
 */
 
-const crypto = require('crypto')
+import * as Adp from '../lib/index.js';
+import * as crypto from 'crypto'
 
 describe('AdpClient', () => {
 
@@ -18,8 +19,7 @@ describe('AdpClient', () => {
   const PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----\nABCDEFGHIJKLMNOPQRSTUVWXYZ\n-----END RSA PRIVATE KEY-----\n"
 
   // arrange
-  const { AdpClient,BadRequestError,UnauthorizedError,ForbiddenError,NotFoundError } = require("../adp_client")
-  const client = new AdpClient(CERTIFICATE,PRIVATE_KEY)
+  const client = new Adp.AdpClient(CERTIFICATE,PRIVATE_KEY)
   
   describe('when the authenticate() method is called', () => {
 
@@ -45,7 +45,6 @@ describe('AdpClient', () => {
 
         // act
         const credential = await client.authenticate(client_id, client_secret);
-        console.log('craig',credential)
 
         // assert
         expect(credential.access_token).not.toBeNull();
@@ -77,12 +76,44 @@ describe('AdpClient', () => {
         // act/assert
         await expect(
           client.authenticate(client_id, client_secret)
-        ).rejects.toThrow(UnauthorizedError);
+        ).rejects.toThrow(Adp.UnauthorizedError);
 
       });
 
     });
-  
+
+    describe("when a certificate isn't provided", () => {
+
+      it('throws an UnauthorizedError', async () => {
+
+        // arrange
+        const client_id = crypto.randomUUID()
+        const client_secret = crypto.randomUUID()
+        
+        client.certificate = null
+        client.private_key = null
+
+        jest.spyOn(client, 'http_request').mockImplementation(
+          () => {
+            const error = new Error(401)
+            error.details = {
+              "error": "invalid_request",
+              "error_description": "proper client ssl certificate was not presented"
+            }
+
+            throw error;
+          }
+        )
+
+        // act/assert
+        await expect(
+          client.authenticate(client_id, client_secret)
+        ).rejects.toThrow(Adp.UnauthorizedError);
+
+      });
+
+    });
+
   });
 
 });
