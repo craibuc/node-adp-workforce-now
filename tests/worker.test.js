@@ -5,12 +5,10 @@ npm test -- worker.test.js
 run the tests in this file.
 
 .Example
-nvm exec v16 npm test -- worker.test.js
+nvm exec v18 npm test -- worker.test.js
 
 run the tests in this file using nvm (node version manager)
 */
-
-import * as Adp from '../lib/index.js';
 
 describe('Worker', () => {
 
@@ -18,11 +16,34 @@ describe('Worker', () => {
   const PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----\nABCDEFGHIJKLMNOPQRSTUVWXYZ\n-----END RSA PRIVATE KEY-----\n"
 
   // arrange
+  const Adp = require('../lib')
   const client = new Adp.AdpClient(CERTIFICATE,PRIVATE_KEY)
 
     describe.skip('all()', () => {
-        it('returns an array of worker objects', () => {
+
+        it('returns an array of worker objects', async () => {
+
+            // arrange
+            const associateOID = 'ABCDEFGHIJKLMNOP'
+            const response = require('./fixtures/workers/aoid/200.json');
+
+            // mock
+            jest.spyOn(client, 'http_request').mockImplementation(
+              () => {
+                return response;
+              }
+            )
+  
+            // return 204 for the second call
+            
+            // act
+            const workers = await client.worker.all();
+            
+            // assert
+            expect(workers[0].associateOID).toBe(associateOID);
+
         });
+
     });
 
     describe('one()', () => {

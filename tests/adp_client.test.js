@@ -5,13 +5,10 @@ npm test -- adp_client.test.js
 run the tests in this file.
 
 .Example
-nvm exec v16 npm test -- adp_client.test.js
+nvm exec v18 npm test -- adp_client.test.js
 
 run the tests in this file using nvm (node version manager)
 */
-
-import * as Adp from '../lib/index.js';
-import * as crypto from 'crypto'
 
 describe('AdpClient', () => {
 
@@ -19,8 +16,11 @@ describe('AdpClient', () => {
   const PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----\nABCDEFGHIJKLMNOPQRSTUVWXYZ\n-----END RSA PRIVATE KEY-----\n"
 
   // arrange
+  const Adp = require('../lib')
   const client = new Adp.AdpClient(CERTIFICATE,PRIVATE_KEY)
-  
+
+  const crypto = require('crypto')
+
   describe('when the authenticate() method is called', () => {
 
     describe('when valid credentials are provided', () => {
