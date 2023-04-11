@@ -1,6 +1,6 @@
 {
   "name": "@craibuc/adp-workforce-now",
-  "version": "1.1.0",
+  "version": "1.2.2",
   "description": "Node.js library to interact with ADP's Workforce Now API",
   "main": "lib/index.js",
   "scripts": {
@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@babel/plugin-transform-modules-commonjs": "^7.21.2",
+    "dotenv": "^16.0.3",
     "jest": "^29.5.0"
   }
 }
