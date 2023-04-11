@@ -1,6 +1,6 @@
 /*
 .Example
-npm test -- adp_client.test.js
+npm test -- client.test.js
 
 run the tests in this file.
 
@@ -10,14 +10,14 @@ nvm exec v18 npm test -- adp_client.test.js
 run the tests in this file using nvm (node version manager)
 */
 
-describe('AdpClient', () => {
+describe('Client', () => {
 
   const CERTIFICATE = "-----BEGIN CERTIFICATE-----\nABCDEFGHIJKLMNOPQRSTUVWXYZ\n-----END CERTIFICATE-----\n"
   const PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----\nABCDEFGHIJKLMNOPQRSTUVWXYZ\n-----END RSA PRIVATE KEY-----\n"
 
   // arrange
   const Adp = require('../lib')
-  const client = new Adp.AdpClient(CERTIFICATE,PRIVATE_KEY)
+  const client = new Adp.Client(CERTIFICATE,PRIVATE_KEY)
 
   const crypto = require('crypto')
 

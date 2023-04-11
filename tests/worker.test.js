@@ -17,7 +17,7 @@ describe('Worker', () => {
 
   // arrange
   const Adp = require('../lib')
-  const client = new Adp.AdpClient(CERTIFICATE,PRIVATE_KEY)
+  const client = new Adp.Client(CERTIFICATE,PRIVATE_KEY)
 
     describe.skip('all()', () => {
 
