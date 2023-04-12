@@ -1,21 +1,17 @@
 # node-adp-workforce-now
 Node.js library to interact with ADP's Workforce Now API.
 
-## Installation
-
-```bash
-npm install 
-```
-
 ## npm
 
-### Scoping
+### Installation
 
 ```bash
-$ npm init --scope=@craibuc
+npm install @craibuc/adp-workforce-now
 ```
 
-### Publish
+## Development
+
+### Publishing
 
 - increment the `version` property in the `package.json` file
 - run `npm publish --access public`
