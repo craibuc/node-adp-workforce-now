@@ -1,0 +1,60 @@
+{
+    "events": [
+        {
+            "data": {
+                "output": {
+                    "worker": {
+                        "associateOID": "G30PZF2MFRV7184Y",
+                        "person": {
+                            "birthDate": "1900-01-01",
+                            "genderCode": {
+                                "codeValue": "M"
+                            },
+                            "governmentIDs": [
+                                {
+                                    "idValue": "111-22-3333",
+                                    "nameCode": {
+                                        "codeValue": "SSN"
+                                    }
+                                }
+                            ],
+                            "legalName": {
+                                "givenName": "Donald",
+                                "familyName1": "Duck"
+                            },
+                            "legalAddress": {
+                                "nameCode": {
+                                    "codeValue": "PersonalAddress1"
+                                },
+                                "lineOne": "123 Maple Street",
+                                "cityName": "Minneapolis",
+                                "countrySubdivisionLevel1": {
+                                    "codeValue": "MN"
+                                },
+                                "countryCode": "US",
+                                "postalCode": "55555"
+                            }
+                        },
+                        "workAssignment": {
+                            "hireDate": "2023-04-26",
+                            "assignmentCostCenters": [],
+                            "workerGroups": [],
+                            "occupationalClassifications": [],
+                            "industryClassifications": [],
+                            "homeOrganizationalUnits": [],
+                            "assignedOrganizationalUnits": [],
+                            "assignedWorkLocations": [],
+                            "additionalRemunerations": [],
+                            "reportsTo": [],
+                            "payrollGroupCode": "ABC",
+                            "payrollFileNumber": "123456",
+                            "customCountryInputs": [],
+                            "links": []
+                        }
+                    }
+                }
+            },
+            "links": []
+        }
+    ]
+}
