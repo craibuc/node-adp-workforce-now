@@ -1,7 +1,7 @@
 {
   "name": "@craibuc/adp-workforce-now",
-  "version": "1.2.2",
-  "description": "Node.js library to interact with ADP's Workforce Now API",
+  "version": "1.2.3",
+  "description": "Node.js library to interact with ADP's Workforce Now API.",
   "main": "lib/index.js",
   "scripts": {
     "test": "jest --testTimeout 10000"
