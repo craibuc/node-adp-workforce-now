@@ -19,7 +19,7 @@ describe('Worker', () => {
   const Adp = require('../lib')
   const client = new Adp.Client(CERTIFICATE,PRIVATE_KEY)
 
-    describe.skip('all()', () => {
+    describe,skip('all()', () => {
 
         it('returns an array of worker objects', async () => {
 
