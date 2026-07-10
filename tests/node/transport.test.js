@@ -21,6 +21,10 @@ test('node transport completes a real mTLS request with a multi-byte body', asyn
     assert.equal(echo.authorized, true);
     assert.equal(echo.method, 'POST');
     assert.equal(JSON.parse(echo.body).name, 'Renée');
+    // ADP's token endpoint rejects chunked bodies: the adapter must send an
+    // explicit byte-accurate Content-Length instead of Transfer-Encoding.
+    assert.equal(echo.headers['content-length'], String(Buffer.byteLength(JSON.stringify({ name: 'Renée' }))));
+    assert.equal(echo.headers['transfer-encoding'], undefined);
   } finally {
     await server.close();
   }

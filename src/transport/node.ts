@@ -18,11 +18,18 @@ export function createNodeTransport(tls: TransportTls): AdpTransport {
   return {
     request(url: string, init: TransportInit): Promise<Response> {
       return new Promise((resolve, reject) => {
+        // Without Content-Length, node:https sends the body chunked — which
+        // ADP's token endpoint rejects (it sees an empty body). Byte length,
+        // not string length, so multi-byte UTF-8 is framed correctly.
+        const headers =
+          init.body !== undefined
+            ? { ...init.headers, 'Content-Length': String(Buffer.byteLength(init.body)) }
+            : init.headers;
         const req = httpsRequest(
           url,
           {
             method: init.method,
-            headers: init.headers,
+            headers,
             cert: tls.cert,
             key: tls.key,
             ca: tls.ca,
