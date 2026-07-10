@@ -65,7 +65,19 @@ store), so importing the main package never touches `windmill-client`.
 the adapter loads it via dynamic import. Types and JS for Node consumers are
 emitted to `dist/` by `tsc` in `prepublishOnly`; Bun consumers and the test
 suite run the TS source directly. Deleted: `.babelrc`, babel deps, jest, nock,
-`lib/`.
+`lib/`, and `package-lock.json` (superseded by `bun.lock`; `typescript` is the
+only dev dependency).
+
+Public-repo requirements shipped with this milestone:
+
+- `LICENSE` file (ISC, matching the existing `package.json` declaration).
+- GitHub Actions CI (`.github/workflows/ci.yml`) running `bun test` and the
+  `node --test` file on every push/PR — enforcing the dual-runtime promise.
+
+ADP payload types are honest and partial: only the fields the library reads or
+writes are typed (`associateOID`, `workAssignments[].itemID`,
+`primaryIndicator`, …), with index signatures for the rest. No attempt to
+model ADP's full worker schema.
 
 ## Transport
 
@@ -109,6 +121,11 @@ const client = new Client(certificatePem, privateKeyPem, {
 - **204 responses return `undefined`** to the caller — never thrown. Callers
   rely on this for end-of-pages and empty-queue semantics.
 - API base is `https://api.adp.com`.
+- **Masking is opt-out PII exposure, not the default:** client option
+  `masked` defaults to `true`. Only when the caller passes `masked: false` do
+  GETs send `Accept: application/json;masked=false` to receive unmasked
+  government IDs. (v1 hardcoded `masked=false` on every GET; v2 makes
+  unmasked SSNs an explicit opt-in.)
 - Tokens, client secrets, and PEM contents never appear in logs or error
   messages.
 
@@ -170,13 +187,18 @@ If no shape matches, the error still carries `statusCode`, `endpoint`, and
 `raw`. **Unmapped statuses (e.g. 429, 5xx) throw the base `AdpError`** with
 `statusCode` set — never a bare `Error`. Additional subclasses (e.g. a rate
 limit class) can be added later without breaking consumers, since every error
-already extends `AdpError`. The recorded payloads in `tests/fixtures/**` are the test corpus.
-`worker.one()` keeps its friendly message for ADP's quirk of returning 403 for
-a nonexistent AOID, now as a structured `ForbiddenError`.
+already extends `AdpError`. The recorded payloads in `tests/fixtures/**` are
+the test corpus.
+
+ADP returns 403 for a nonexistent AOID. v1 rewrote every `worker.one()` 403 to
+"AOID does not exist", which mislabeled genuine permission/scope failures; v2
+drops the rewrite — the `ForbiddenError` carries ADP's own `adpMessage`,
+`adpCode`, and raw body.
 
 ## Worker domain
 
-- `one(aoid)` — `GET /hr/v2/workers/{aoid}`, returns `workers[0]`.
+- `one(aoid)` — `GET /hr/v2/workers/{aoid}`, returns `workers[0]`. No special
+  403 handling (see Errors).
 - `pages(pageSize = 100)` — `AsyncGenerator` over `GET /hr/v2/workers` using
   `$top`/`$skip`, yielding each page's workers, stopping on 204/`undefined`.
 - `all()` — `for await` accumulation over `pages()` (convenience; unbounded
@@ -186,7 +208,10 @@ a nonexistent AOID, now as a structured `ForbiddenError`.
   hardcoded business values promoted to parameters defaulting to the v1
   values: hire `eventReasonCode = "NEW"`; rehire `reasonCode = "IMPORT"`;
   terminate `rehireEligibleIndicator = true`,
-  `severanceEligibleIndicator = true`.
+  `severanceEligibleIndicator = true`. terminate's v1 `comments` parameter is
+  renamed `commentCode` — its value lands in `comment.commentCode.codeValue`
+  on the wire (a code field, not free text); the wire format is unchanged, and
+  the live smoke test should confirm what ADP actually expects there.
 - `hireMeta()` — raw passthrough of `GET /events/hr/v1/worker.hire/meta`.
   (Meta caching/validation is milestone 2.)
 
