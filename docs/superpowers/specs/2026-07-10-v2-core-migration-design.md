@@ -140,25 +140,37 @@ serialization differs between languages. Do not change it unilaterally.
 ```typescript
 class AdpError extends Error {
   statusCode: number;
-  adpMessage?: string;
-  endpoint: string;
-  raw?: unknown;      // original response body
+  endpoint: string;    // e.g. "POST /events/hr/v1/worker.rehire"
+  adpMessage?: string; // human-readable text, any of the 3 shapes
+  adpCode?: string;    // machine-readable, e.g. "API_REHIRE_EE_ALREADY_ACTIVE"
+  raw?: unknown;       // original response body
 }
-// BadRequestError | UnauthorizedError | ForbiddenError | NotFoundError extend AdpError
+// BadRequestError (400) | UnauthorizedError (401) | ForbiddenError (403) |
+// NotFoundError (404) extend AdpError
 
 function raiseForAdp(status: number, json: unknown, endpoint: string): never;
 ```
 
+The hierarchy is shallow and status-based; semantic branching ("already
+active", "already terminated") happens on the `adpCode` field, not via
+subclasses — ADP's error codes come from tenant validation tables and are
+open-ended, so a class per code would never be complete. Callers get three
+levels of granularity: catch `AdpError` (any API failure), catch a status
+subclass, or branch on `adpCode`.
+
 `raiseForAdp` maps the numeric status to an error class and extracts
-`adpMessage` by trying ADP's three known error shapes in order:
+`adpMessage`/`adpCode` by trying ADP's three known error shapes in order:
 
 1. `response.applicationCode.message` (newer APIs)
 2. `confirmMessage.resourceMessages[0].processMessages[0].userMessage.messageTxt`
-   (+ `resourceMessageID.idValue`) (legacy)
+   for `adpMessage`, plus `processMessageID.idValue` for `adpCode` (legacy)
 3. `exceptionMessages[0].message` (terminate and some events)
 
 If no shape matches, the error still carries `statusCode`, `endpoint`, and
-`raw`. The recorded payloads in `tests/fixtures/**` are the test corpus.
+`raw`. **Unmapped statuses (e.g. 429, 5xx) throw the base `AdpError`** with
+`statusCode` set — never a bare `Error`. Additional subclasses (e.g. a rate
+limit class) can be added later without breaking consumers, since every error
+already extends `AdpError`. The recorded payloads in `tests/fixtures/**` are the test corpus.
 `worker.one()` keeps its friendly message for ADP's quirk of returning 403 for
 a nonexistent AOID, now as a structured `ForbiddenError`.
 
@@ -194,7 +206,8 @@ a nonexistent AOID, now as a structured `ForbiddenError`.
 - Unit tests ported to `bun test` (near drop-in from jest). Mocking happens at
   the `transport` constructor-injection seam.
 - Error extractor: one test per fixture file, asserting class, `statusCode`,
-  and `adpMessage`.
+  `adpMessage`, and `adpCode` where present; plus an unmapped-status case
+  (e.g. 429) asserting the base `AdpError` fallback.
 - Pagination: fake transport returning two pages then 204. 401 retry: fake
   transport that 401s once then succeeds, and one that always 401s. UTF-8:
   POST body containing multi-byte characters.
