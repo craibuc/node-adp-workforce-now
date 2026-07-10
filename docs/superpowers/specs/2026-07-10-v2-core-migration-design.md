@@ -52,7 +52,7 @@ src/
   transport/
     types.ts            # AdpTransport interface
     bun.ts              # fetch + Bun tls option
-    node.ts             # fetch + undici Agent
+    node.ts             # node:https wrapper returning standard Response
   token-store/
     types.ts            # TokenStore interface + CachedToken shape
     memory.ts           # MemoryTokenStore
@@ -65,8 +65,8 @@ store), so importing the main package never touches `windmill-client`.
 the adapter loads it via dynamic import. Types and JS for Node consumers are
 emitted to `dist/` by `tsc` in `prepublishOnly`; Bun consumers and the test
 suite run the TS source directly. Deleted: `.babelrc`, babel deps, jest, nock,
-`lib/`, and `package-lock.json` (superseded by `bun.lock`; `typescript` is the
-only dev dependency).
+`lib/`, and `package-lock.json` (superseded by `bun.lock`; `typescript` and
+`@types/node` are the only dev dependencies).
 
 Public-repo requirements shipped with this milestone:
 
@@ -91,8 +91,10 @@ interface AdpTransport {
 ```
 
 - **Bun adapter:** `fetch(url, { ...init, tls: { cert, key } })`.
-- **Node adapter:** `fetch(url, { ...init, dispatcher })` with an undici
-  `Agent({ connect: { cert, key } })`.
+- **Node adapter:** wraps `node:https` (v1's mechanism, demoted to an adapter)
+  and converts the response to a standard `Response`. undici's `Agent` is not
+  importable from Node builtins, so a fetch-based Node adapter would require a
+  runtime dependency — ruled out by the zero-dependency constraint.
 - `Client` auto-detects the runtime at construction
   (`typeof Bun !== 'undefined'`); an explicit `transport` option overrides,
   which is also the mock seam for tests.
