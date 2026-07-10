@@ -18,13 +18,13 @@
             "codeValue": "POST"
         },
         "sessionID": {
-            "idValue": "OuzqBm6XhM3xqMfbzkelC5jFFMA=",
+            "idValue": "FAKESESSIONFAKESESSIONFAKE0=",
             "schemeName": "sessionID",
             "schemeAgencyName": "WFN"
         },
         "requestETag": "No eTag in request",
         "requestLink": {
-            "href": "https://pulsar-marketplace-prod.es.oneadp.com:443/wfn/mobility/rest/events/hr/v1/worker.rehire",
+            "href": "https://wfn.example.invalid:443/wfn/mobility/rest/events/hr/v1/worker.rehire",
             "rel": "related",
             "mediaType": "application/json",
             "method": "POST",

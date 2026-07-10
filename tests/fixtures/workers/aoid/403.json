@@ -18,7 +18,7 @@
             "codeValue": "GET"
         },
         "requestLink": {
-            "href": "http://pulsar-marketplace-prod.es.oneadp.com/associate/metaservices/hr/v2/workers/G3BJDMRVTTP9GTMX-x",
+            "href": "http://wfn.example.invalid/associate/metaservices/hr/v2/workers/G0FAKEFAKEFAKE2B-x",
             "rel": "related",
             "method": "GET"
         },
@@ -26,7 +26,7 @@
         "resourceMessages": [
             {
                 "resourceMessageID": {
-                    "idValue": "hr/v2/workers/G3BJDMRVTTP9GTMX-x",
+                    "idValue": "hr/v2/workers/G0FAKEFAKEFAKE2B-x",
                     "schemeName": "resourceMessageID",
                     "schemeAgencyName": "WFN"
                 },

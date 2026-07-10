@@ -1,0 +1,7 @@
+[test]
+# tests/node/** targets the Node-runtime adapter with node:test against the
+# built dist/ output and relies on node:https TLS-socket semantics (e.g.
+# req.socket.authorized) that Bun's node:https polyfill does not fully
+# replicate. Keep it out of `bun test`'s scope; it is run separately via
+# `npm run test:node` (see package.json) and CI's `node` job.
+pathIgnorePatterns = ["tests/node/**"]

@@ -1,0 +1,36 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/typescript-node
+{
+	"name": "Node.js & TypeScript",
+	"image": "mcr.microsoft.com/devcontainers/typescript-node:4-24-trixie",
+	"runArgs": ["--name=devcontainer-adp-workforce-now", "--env-file", "${localWorkspaceFolder}/.env"],
+
+	// Mount local configuration directories for Claude and GitHub CLI into the container
+	"mounts": [
+		"source=${localEnv:HOME}/.claude,target=/home/node/.claude,type=bind,consistency=cached",
+		"source=${localEnv:HOME}/.config/gh,target=/home/node/.config/gh,type=bind,consistency=cached"
+	],
+
+  // Features to add to the dev container. More info: https://containers.dev/features.
+  "features": {
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/shyim/devcontainers-features/bun:0": {}
+  },
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "yarn install",
+
+  // Configure tool-specific properties.
+  "customizations": {
+    "vscode": {
+      "extensions": ["Anthropic.claude-code"]
+    }
+  }
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}

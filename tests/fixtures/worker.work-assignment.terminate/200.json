@@ -4,9 +4,9 @@
     "serverTimeTaken": null,
     "eventContext": {
         "worker": {
-            "associateOID": "G3BJDMRVTTP9GTMX",
+            "associateOID": "G0FAKEFAKEFAKE2B",
             "workAssignment": {
-                "itemID": "K4P011981"
+                "itemID": "K4PFAKE0001"
             }
         }
     },
@@ -15,14 +15,14 @@
         "comments": [
             {
                 "commentCode": {
-                    "codeValue": "Looking for better growth and oppurtunities"
+                    "codeValue": "TERM_COMMENT_CODE"
                 }
             }
         ],
         "worker": {
-            "associateOID": "G3BJDMRVTTP9GTMX",
+            "associateOID": "G0FAKEFAKEFAKE2B",
             "workerID": {
-                "idValue": "K4P011981",
+                "idValue": "K4PFAKE0001",
                 "schemeCode": {
                     "codeValue": "",
                     "shortName": ""

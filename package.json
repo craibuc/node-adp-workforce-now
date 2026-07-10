@@ -1,34 +1,43 @@
 {
   "name": "@craibuc/adp-workforce-now",
-  "version": "1.2.3",
-  "description": "Node.js library to interact with ADP's Workforce Now API.",
-  "main": "lib/index.js",
-  "scripts": {
-    "test": "jest --testTimeout 10000"
+  "version": "2.0.0-dev.0",
+  "description": "TypeScript client for ADP Workforce Now: mTLS transport, lazy OAuth, typed errors. Runs on Bun and Node.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./windmill": {
+      "bun": "./src/token-store/windmill.ts",
+      "types": "./dist/token-store/windmill.d.ts",
+      "default": "./dist/token-store/windmill.js"
+    }
   },
+  "files": ["dist", "src"],
+  "sideEffects": false,
+  "scripts": {
+    "test": "bun test",
+    "test:node": "npm run build && node --test tests/node/*.test.js",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": { "node": ">=20" },
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/craibuc/node-adp-workforce-now.git"
   },
-  "keywords": [
-    "adp",
-    "workforce-now",
-    "api",
-    "node"
-  ],
+  "keywords": ["adp", "workforce-now", "api", "typescript", "bun", "node"],
   "author": "Craig Buchanan",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/craibuc/node-adp-workforce-now/issues"
-  },
+  "bugs": { "url": "https://github.com/craibuc/node-adp-workforce-now/issues" },
   "homepage": "https://github.com/craibuc/node-adp-workforce-now#readme",
-  "dependencies": {
-    "https": "^1.0.0"
-  },
   "devDependencies": {
-    "@babel/plugin-transform-modules-commonjs": "^7.21.2",
-    "dotenv": "^16.0.3",
-    "jest": "^29.5.0",
-    "nock": "^13.3.1"
+    "@types/node": "^24.0.0",
+    "typescript": "^5.5.0"
   }
 }

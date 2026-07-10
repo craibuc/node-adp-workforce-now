@@ -1,23 +1,104 @@
-# node-adp-workforce-now
-Node.js library to interact with ADP's Workforce Now API.
+# adp-workforce-now
 
-## npm
+TypeScript client for [ADP Workforce Now](https://developers.adp.com/): mTLS
+transport, lazy OAuth client-credentials auth, typed errors, paginated worker
+reads, and lifecycle events (hire / rehire / terminate).
 
-### Installation
+Runs on **Bun ≥ 1.2** (tested on 1.3) and **Node ≥ 20**. Zero runtime
+dependencies.
+
+## Install
 
 ```bash
 npm install @craibuc/adp-workforce-now
+# or
+bun add @craibuc/adp-workforce-now
+```
+
+## Usage
+
+```typescript
+import { Client } from '@craibuc/adp-workforce-now';
+
+// PEM strings may be raw or base64-encoded (auto-detected).
+const client = new Client(certificatePem, privateKeyPem, {
+  credentials: { client_id, client_secret }, // lazy auto-auth + 401 retry
+});
+
+const worker = await client.worker.one('G0FAKEFAKEFAKE1A');
+
+for await (const page of client.worker.pages()) {
+  console.log(page.length);
+}
+
+const match = await client.worker.find((w) => w.associateOID === 'G0FAKEFAKEFAKE1A');
+```
+
+ADP requires mutual TLS on every call, including the token endpoint. Keys and
+certificates are kept in memory only.
+
+### Masked data
+
+GET responses arrive with government IDs masked by default. To receive
+unmasked values (requires appropriate ADP scopes):
+
+```typescript
+const client = new Client(cert, key, { credentials, masked: false });
+```
+
+### Errors
+
+All non-2xx responses throw a subclass of `AdpError` carrying `statusCode`,
+`endpoint`, ADP's human-readable `adpMessage`, machine-readable `adpCode`,
+and the `raw` body:
+
+```typescript
+import { AdpError, BadRequestError } from '@craibuc/adp-workforce-now';
+
+try {
+  await client.worker.rehire({ associateOID, rehireDate, effectiveDate });
+} catch (error) {
+  if (error instanceof BadRequestError && error.adpCode === 'API_REHIRE_EE_ALREADY_ACTIVE') {
+    // already active — treat as success
+  } else {
+    throw error;
+  }
+}
+```
+
+### Token stores
+
+Tokens are cached via a pluggable `TokenStore` (default: in-memory). The
+cached JSON shape is `{"access_token": string, "expires_at": number}` with
+`expires_at` in epoch seconds UTC — a cross-language contract shared with
+other clients.
+
+On [Windmill](https://www.windmill.dev/), share one token across scripts:
+
+```typescript
+import { WindmillTokenStore } from '@craibuc/adp-workforce-now/windmill';
+
+const client = new Client(cert, key, {
+  credentials,
+  tokenStore: new WindmillTokenStore('f/adp/access_token_cache'),
+});
 ```
 
 ## Development
 
-### Publishing
+```bash
+bun install
+bun test            # unit tests (Bun)
+npm run test:node   # Node adapter tests against a local mTLS server
+bun run typecheck
+```
 
-- increment the `version` property in the `package.json` file
-- run `npm publish --access public`
+### Live integration test
 
-## Reference
+Copy `.env.sample` to `.env` and fill in real ADP credentials (base64-encode
+the PEMs). The live test then runs as part of `bun test`; without the
+variables it is skipped.
 
-- [A Zapier integration to connect to ADP's API.](https://github.com/craibuc/zapier-adp)
-- [How to Create and Publish an NPM Package – a Step-by-Step Guide](https://www.freecodecamp.org/news/how-to-create-and-publish-your-first-npm-package/)
-- [Does Jest support ES6 import/export?](https://stackoverflow.com/questions/35756479/does-jest-support-es6-import-export)
+## License
+
+ISC

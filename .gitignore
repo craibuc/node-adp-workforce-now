@@ -105,3 +105,9 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Private, machine-local agent context — never commit
+CLAUDE.local.md
+
+# npm lockfile — bun.lock is canonical (package-lock regenerates via npm install for the Node CI job)
+package-lock.json
