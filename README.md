@@ -84,6 +84,30 @@ const client = new Client(cert, key, {
 });
 ```
 
+## API coverage
+
+Endpoint → `Class.method` mapping. `Worker` methods are reached via
+`client.worker`; anything not wrapped yet is reachable through the
+`Client.get` / `Client.post` escape hatches (auth, mTLS, and error
+extraction still apply).
+
+| Status | ADP endpoint | Library API |
+|:---:|---|---|
+| ✅ | `POST accounts.adp.com/auth/oauth/v2/token` | `Client.authenticate` (also implicit — lazy auth on any call) |
+| ✅ | `GET /hr/v2/workers` (`$top`/`$skip` paging) | `Worker.pages`, `Worker.all`, `Worker.find` |
+| ✅ | `GET /hr/v2/workers/{aoid}` | `Worker.one` |
+| ✅ | `POST /events/hr/v1/worker.hire` | `Worker.hire` |
+| ✅ | `GET /events/hr/v1/worker.hire/meta` | `Worker.hireMeta` (raw passthrough) |
+| ✅ | `POST /events/hr/v1/worker.rehire` | `Worker.rehire` |
+| ✅ | `POST /events/hr/v1/worker.work-assignment.terminate` | `Worker.terminate` |
+| ✅ | any other endpoint | `Client.get`, `Client.post` (escape hatch) |
+| 🔜 | `POST /events/hr/v1/worker.work-assignment.base-remuneration.change` | `Worker.changeBaseRemuneration` (planned) |
+| 🔜 | `GET  /events/hr/v1/worker.work-assignment.base-remuneration.change/meta` | planned — with tenant-level meta caching and client-side payload validation before POST |
+| ⬜ | `GET /core/v1/event-notification-messages` (event queue) | unplanned |
+| ⬜ | legacy worker-profile v1 `PUT` endpoints | not planned — superseded by the event-based writes above |
+
+✅ implemented (2.0.0) · 🔜 planned (next milestone) · ⬜ no current plans — PRs welcome
+
 ## Development
 
 ```bash
