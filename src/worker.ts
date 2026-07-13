@@ -2,12 +2,16 @@ import { EventValidationError, parseEventMeta, validateEnvelope } from './meta.j
 import type { EventMeta, SupportedEvent } from './meta.js';
 import type { Client } from './client.js';
 import { BadRequestError } from './errors.js';
+import { WorkerSearch, odataEscape } from './search.js';
+import type { WorkerQuery } from './search.js';
 
 /** Typed only where the library reads/writes; everything else passes through. */
 export interface WorkerRecord {
   associateOID: string;
   [key: string]: unknown;
 }
+
+export type WorkerKey = string | { aoid: string } | { ssn: string };
 
 export interface HireParams {
   givenName: string;
@@ -191,49 +195,50 @@ export class Worker {
     }
   }
 
-  async one(associateOID: string): Promise<WorkerRecord | undefined> {
-    const response = (await this.client.get(`/hr/v2/workers/${encodeURIComponent(associateOID)}`)) as
-      | { workers?: WorkerRecord[] }
-      | undefined;
+  /**
+   * Fetch one worker by key: aoid (string shorthand or { aoid }) or { ssn }.
+   * If both keys are somehow present (plain JS), `ssn` wins.
+   */
+  async get(key: WorkerKey): Promise<WorkerRecord | undefined> {
+    const k = typeof key === 'string' ? { aoid: key } : key;
+    if (k === null || typeof k !== 'object') {
+      throw new Error('worker.get() requires an aoid string, { aoid }, or { ssn }');
+    }
+    if ('ssn' in k) {
+      if (typeof k.ssn !== 'string' || k.ssn.length === 0) {
+        throw new Error('worker.get({ ssn }) requires a non-empty ssn string');
+      }
+      // Lookup-by-identifier via the worker.read event (recorded envelope —
+      // its filter dialect supports governmentIDs but NOT name paths).
+      const response = (await this.postEvent('worker.read', {
+        events: [
+          {
+            serviceCategoryCode: { codeValue: 'hr' },
+            eventNameCode: { codeValue: 'worker.read' },
+            data: {
+              transform: {
+                queryParameter:
+                  `$filter=person/governmentIDs[0]/idValue eq '${odataEscape(k.ssn)}' ` +
+                  `and person/governmentIDs[0]/nameCode eq 'SSN'`,
+              },
+            },
+          },
+        ],
+      })) as { events?: Array<{ data?: { output?: { workers?: WorkerRecord[] } } }> } | undefined;
+      return response?.events?.[0]?.data?.output?.workers?.[0];
+    }
+    if (!('aoid' in k) || typeof k.aoid !== 'string' || k.aoid.length === 0) {
+      throw new Error('worker.get() requires an aoid string, { aoid }, or { ssn }');
+    }
+    const response = (await this.client.get(
+      `/hr/v2/workers/${encodeURIComponent(k.aoid)}`,
+    )) as { workers?: WorkerRecord[] } | undefined;
     return response?.workers?.[0];
   }
 
-  /**
-   * Stateless single-page fetch — for external loops (e.g. Windmill flow
-   * while-loops) where each iteration runs in a fresh process and cannot
-   * hold a generator across iterations. `undefined` past the last page.
-   */
-  async page(index: number, pageSize = 100): Promise<WorkerRecord[] | undefined> {
-    const response = (await this.client.get(
-      `/hr/v2/workers?$top=${pageSize}&$skip=${index * pageSize}`,
-    )) as { workers?: WorkerRecord[] } | undefined;
-    return response?.workers;
-  }
-
-  async *pages(pageSize = 100): AsyncGenerator<WorkerRecord[], void, void> {
-    for (let index = 0; ; index++) {
-      const workers = await this.page(index, pageSize);
-      if (!workers || workers.length === 0) return;
-      yield workers;
-    }
-  }
-
-  /** Convenience accumulation; memory grows with the full worker count. */
-  async all(pageSize = 100): Promise<WorkerRecord[]> {
-    const result: WorkerRecord[] = [];
-    for await (const page of this.pages(pageSize)) result.push(...page);
-    return result;
-  }
-
-  async find(
-    predicate: (worker: WorkerRecord) => boolean,
-    pageSize = 100,
-  ): Promise<WorkerRecord | undefined> {
-    for await (const page of this.pages(pageSize)) {
-      const match = page.find(predicate);
-      if (match) return match;
-    }
-    return undefined;
+  /** Lazy search handle — fetches nothing until page()/pages()/all()/find(). */
+  search(query: WorkerQuery = {}): WorkerSearch {
+    return new WorkerSearch(this.client, query);
   }
 
   hire(params: HireParams): Promise<unknown> {
@@ -439,10 +444,5 @@ export class Worker {
       ],
     };
     return this.postEvent('worker.leave.absence.request', data);
-  }
-
-  /** @deprecated Use `eventMeta('worker.hire')` — returns parsed meta with caching. */
-  hireMeta(): Promise<unknown> {
-    return this.eventMeta('worker.hire').then((m) => m.raw);
   }
 }

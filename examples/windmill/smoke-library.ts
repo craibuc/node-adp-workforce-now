@@ -7,7 +7,8 @@
 //     worker's Bun version.
 //  2. WindmillTokenStore works against the REAL windmill-client: a missing
 //     cache variable is treated as empty (not a crash), and set() creates it.
-//  3. Optional: a live worker read via client.worker.one().
+//  3. Optional: a live worker read via client.worker.get() (requires
+//     @craibuc/adp-workforce-now@>=3).
 //
 // After the first run, check two things in the Windmill UI:
 //  - the variable at `tokenCachePath` was created with the SECRET flag set;
@@ -43,7 +44,7 @@ export async function main(
   const token = await client.authenticate();
   const cached = await store.get();
 
-  const worker = associateOID ? await client.worker.one(associateOID) : undefined;
+  const worker = associateOID ? await client.worker.get(associateOID) : undefined;
 
   return {
     authenticated: typeof token.access_token === 'string',

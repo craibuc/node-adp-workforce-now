@@ -20,7 +20,7 @@ describe.skipIf(!hasCredentials)('live ADP smoke test', () => {
   }, 15000);
 
   it.skipIf(!ADP_ASSOCIATE_OID)('reads a known worker', async () => {
-    const worker = await liveClient().worker.one(ADP_ASSOCIATE_OID!);
+    const worker = await liveClient().worker.get(ADP_ASSOCIATE_OID!);
     expect(worker?.associateOID).toBe(ADP_ASSOCIATE_OID!);
   }, 15000);
 });

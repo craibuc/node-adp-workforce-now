@@ -9,8 +9,11 @@ export type {
   RehireParams,
   RequestLeaveAbsenceParams,
   TerminateParams,
+  WorkerKey,
   WorkerRecord,
 } from './worker.js';
+export { WorkerSearch } from './search.js';
+export type { WorkerPage, WorkerQuery } from './search.js';
 export {
   AdpError,
   BadRequestError,

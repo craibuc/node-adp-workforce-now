@@ -6,7 +6,8 @@ export type SupportedEvent =
   | 'worker.work-assignment.base-remuneration.change'
   | 'worker.legal-name.change'
   | 'worker.person.custom-field.string.change'
-  | 'worker.leave.absence.request';
+  | 'worker.leave.absence.request'
+  | 'worker.read';
 
 export interface FieldRule {
   optional?: boolean;

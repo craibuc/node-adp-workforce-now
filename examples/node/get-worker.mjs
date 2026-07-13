@@ -44,13 +44,13 @@ const token = await client.authenticate();
 console.log('authenticated — token expires', new Date(token.expires_at * 1000).toISOString());
 
 if (ADP_ASSOCIATE_OID) {
-  const worker = await client.worker.one(ADP_ASSOCIATE_OID);
+  const worker = await client.worker.get(ADP_ASSOCIATE_OID);
   console.log(worker ? JSON.stringify(worker, null, 2) : `no worker found for ${ADP_ASSOCIATE_OID}`);
 } else {
   // No AOID provided: fetch the first page and show what's there.
-  const { value: page } = await client.worker.pages(10).next();
-  console.log(`first page: ${page?.length ?? 0} workers`);
-  for (const worker of page ?? []) {
+  const page = await client.worker.search({ pageSize: 10 }).page(0);
+  console.log(`first page: ${page.workers.length} workers (done: ${page.done})`);
+  for (const worker of page.workers) {
     console.log(`- ${worker.associateOID}`);
   }
 }

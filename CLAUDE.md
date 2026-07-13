@@ -8,7 +8,7 @@ CommonJS/Node-`https` implementation; the full migration design and rationale
 live in [`docs/superpowers/specs/2026-07-10-v2-core-migration-design.md`](docs/superpowers/specs/2026-07-10-v2-core-migration-design.md).
 
 - `Client` = transport (mTLS, auth, HTTP) with domain namespaces hanging off
-  it (`client.worker.one(aoid)`, `client.worker.hire({...})`).
+  it (`client.worker.get(aoid)`, `client.worker.hire({...})`).
 - Typed errors (`BadRequestError`, `UnauthorizedError`, `ForbiddenError`,
   `NotFoundError`) carry structured fields (`statusCode`, `adpMessage`,
   `adpCode`, `endpoint`), not just formatted strings.
@@ -50,10 +50,16 @@ live in [`docs/superpowers/specs/2026-07-10-v2-core-migration-design.md`](docs/s
   - by org unit (compound `and` WITHIN one param — observed working):
     `$filter=workers/workAssignments/homeOrganizationalUnits/typeCode/codeValue eq 'Department' and workers/workAssignments/homeOrganizationalUnits/nameCode/codeValue eq '000001'`
   - **Gotcha:** sending TWO separate `$filter=` query params does NOT combine
-    them — one is silently ignored (observed with familyName1 + givenName).
-    Combine predicates with `and` inside a single `$filter` param instead;
-    whether name-field `and` combos work server-side is untested (org-unit
-    ones do) — verify before designing `findByName`.
+    them — one is silently ignored. Compound `and` INSIDE one param works for
+    org-unit fields but returns a 500 (`sp_filter` exception) for name-field
+    combos (live-tested 2026-07-13) — which is why the library sends at most
+    ONE server-side predicate and filters the rest client-side (see the v3
+    spec's Evidence section).
+  - `POST /events/hr/v1/worker.read` is an event-based lookup: its
+    `transform.queryParameter` accepts `$filter` on `person/governmentIDs`
+    (SSN lookup — powers `worker.get({ ssn })`) but rejects `legalName`
+    paths (400 "queryParameter is invalid"). Its meta has a single
+    overdeclared rule (`queryParameter` required+readOnly+hidden).
 - **Meta validation**: event metas are tenant-level (not per-worker) → safe to
   cache 12–24 h. Meta maps JSON-pointer-ish paths → constraints:
   `optional`, `readOnly`, `hidden`, `codeList.listItems[].codeValue`,

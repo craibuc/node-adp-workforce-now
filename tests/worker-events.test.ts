@@ -107,12 +107,3 @@ describe('worker.terminate', () => {
     expect(assignment.severanceEligibleIndicator).toBe(false);
   });
 });
-
-describe('worker.hireMeta', () => {
-  it('GETs the hire event meta', async () => {
-    const { client, calls } = makeClient();
-    await client.worker.hireMeta();
-    expect(calls[1].method).toBe('GET');
-    expect(calls[1].url).toBe('https://api.adp.com/events/hr/v1/worker.hire/meta');
-  });
-});

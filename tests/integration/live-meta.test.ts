@@ -23,7 +23,7 @@ const KNOWN_UNAVAILABLE = new Set<SupportedEvent>(['worker.work-assignment.termi
  * library's own envelope shapes are proven against production ADP, not just
  * synthetic fixtures.
  */
-const ENVELOPES: Record<SupportedEvent, unknown> = {
+const ENVELOPES: Record<Exclude<SupportedEvent, 'worker.read'>, unknown> = {
   'worker.hire': {
     events: [
       {
@@ -183,7 +183,7 @@ const ENVELOPES: Record<SupportedEvent, unknown> = {
   },
 };
 
-const EVENTS = Object.keys(ENVELOPES) as SupportedEvent[];
+const EVENTS = Object.keys(ENVELOPES) as Array<Exclude<SupportedEvent, 'worker.read'>>;
 
 // Release gate for the draft envelopes: every supported event's meta must be
 // fetchable and parseable from the real tenant, AND the library's own
@@ -235,4 +235,20 @@ describe.skipIf(!hasCredentials)('live event metas', () => {
       expect(fraction).toBeGreaterThan(0.3);
     }, 20000);
   }
+
+  it('worker.read meta parses (single overdeclared queryParameter rule)', async () => {
+    const meta = await liveClient().worker.eventMeta('worker.read');
+    expect(meta.raw).toBeTruthy();
+    expect(meta.rules.has('transform:/queryParameter')).toBe(true);
+  }, 20000);
+
+  it('get({ ssn }) miss-probe returns undefined (fake SSN, no PII)', async () => {
+    expect(await liveClient().worker.get({ ssn: '000-00-0000' })).toBeUndefined();
+  }, 20000);
+
+  const testSsn = process.env.ADP_TEST_SSN;
+  it.skipIf(!testSsn)('get({ ssn }) hit-probe finds a worker', async () => {
+    const worker = await liveClient().worker.get({ ssn: testSsn! });
+    expect(worker?.associateOID).toBeTruthy();
+  }, 20000);
 });

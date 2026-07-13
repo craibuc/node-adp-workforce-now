@@ -26,14 +26,35 @@ const client = new Client(certificatePem, privateKeyPem, {
   credentials: { client_id, client_secret }, // lazy auto-auth + 401 retry
 });
 
-const worker = await client.worker.one('G0FAKEFAKEFAKE1A');
+// keyed lookup — one worker or undefined
+const byAoid = await client.worker.get('G0FAKEFAKEFAKE1A');
+const bySsn = await client.worker.get({ ssn: '123-45-6789' });
 
-for await (const page of client.worker.pages()) {
-  console.log(page.length);
+// search() is LAZY: it fetches nothing until you call a method on it
+const search = client.worker.search({ familyName: 'Duck', status: 'A' });
+
+const page = await search.page(0);       // one request — { workers, index, done, next }
+for await (const p of search.pages()) {  // stream — one request per iteration
+  console.log(p.workers.length, p.done);
 }
-
-const match = await client.worker.find((w) => w.associateOID === 'G0FAKEFAKEFAKE1A');
 ```
+
+Early-exit scan recipe (test each worker with arbitrary code, stop at the
+first hit — this is what the deprecated `.find()` does internally):
+
+```typescript
+async function findByEmployeeNumber(id: string) {
+  for await (const { workers } of client.worker.search({ status: 'A' }).pages()) {
+    const match = workers.find((w) => (w.workerID as { idValue?: string } | undefined)?.idValue === id);
+    if (match) return match;
+  }
+}
+```
+
+Flow-engine loops (e.g. a Windmill while-loop, one iteration per page): call
+`search(query).page(n)` each iteration and loop on `done` — **never on
+`workers.length`**, which can be 0 mid-stream when client-side residual
+filters (e.g. the second name in a two-name query) empty a page.
 
 ADP requires mutual TLS on every call, including the token endpoint. Keys and
 certificates are kept in memory only.
@@ -125,10 +146,10 @@ extraction still apply).
 | Status | ADP endpoint | Library API | Description |
 |:---:|---|---|---|
 | ✅ | `POST accounts.adp.com/auth/oauth/v2/token` | `Client.authenticate` | OAuth client-credentials token over mTLS; called lazily on any request, cached in the `TokenStore`, refreshed 300 s before expiry |
-| ✅ | `GET /hr/v2/workers` (`$top`/`$skip` paging) | `Worker.pages`, `Worker.all`, `Worker.find`, `Worker.page` | List workers: lazy page iterator, full accumulation, first-match search with early exit, or stateless single-page fetch (for flow-engine loops) |
-| ✅ | `GET /hr/v2/workers/{aoid}` | `Worker.one` | Fetch a single worker by associate OID |
+| ✅ | `GET /hr/v2/workers` (`$top`/`$skip`, single `$filter` predicate) | `Worker.search` → `page` / `pages` (`all` / `find` deprecated) | Lazy search handle; stateless `WorkerPage {workers, index, done, next}` protocol; extra query fields filtered client-side (ADP's compound name filters are broken server-side) |
+| ✅ | `GET /hr/v2/workers/{aoid}` | `Worker.get` | Fetch a single worker by associate OID (string or `{ aoid }`) |
+| ✅ | `POST /events/hr/v1/worker.read` | `Worker.get({ ssn })` | Look up a single worker by government ID; ADP's read-event filter supports IDs but not name paths |
 | ✅ | `POST /events/hr/v1/worker.hire` | `Worker.hire` | Hire a new worker (legal name, SSN, address, hire date, payroll group) |
-| ✅ | `GET /events/hr/v1/worker.hire/meta` | `Worker.hireMeta` | Hire-event metadata (field constraints, code lists) — raw passthrough (deprecated — use `Worker.eventMeta`) |
 | ✅ | `POST /events/hr/v1/worker.rehire` | `Worker.rehire` | Rehire a terminated worker as of an effective date |
 | ✅ | `POST /events/hr/v1/worker.work-assignment.terminate` | `Worker.terminate` | Terminate a work assignment (reason code, termination/last-worked date, eligibility indicators) |
 | ✅ | any other endpoint | `Client.get`, `Client.post` | Escape hatch for unwrapped endpoints — auth, mTLS, and typed-error extraction still apply |
@@ -138,8 +159,6 @@ extraction still apply).
 | ✅ | `POST /events/hr/v1/worker.person.custom-field.string.change` | `Worker.changeCustomFieldString` | Change a string-typed custom field on a worker's record |
 | ✅ | `POST /events/hr/v1/worker.leave.absence.request` | `Worker.requestLeaveAbsence` | Request a leave of absence (leave-type code, start/expected-return dates) |
 | 🔜 | `GET /core/v1/event-notification-messages` | `EventNotifications.next` / `delete` (`client.eventNotifications`, v2.3) | Event-notification queue (one message per call; delete handle in a response header) |
-| 🔜 | `GET /hr/v2/workers?$filter=…` | `Worker.findByName` (v2.3) | Server-side filtered search by worker name |
-| 🔜 | client-side SSN lookup | `Worker.findBySSN` (v2.3) | Search workers by SSN (client-side match over paged results) |
 | 🔜 | `GET /hr/v2/workers/{aoid}/worker-images/photo` + `POST /events/hr/v1/worker.photo.upload` | v2.4 | Read and upload a worker's photo |
 | ⬜ | `POST /events/hr/v1/worker.work-assignment.modify` | roadmap | Modify an existing work assignment |
 | ⬜ | contact-info change events | roadmap | Change a worker's phone/email contact info |
@@ -147,7 +166,7 @@ extraction still apply).
 | ⬜ | `POST /events/hr/v1/worker.pay-distribution.change` | roadmap | Change a worker's pay distribution (direct deposit accounts) |
 | ⬜ | legacy worker-profile v1 `PUT` endpoints | not planned | Superseded by the event-based writes above |
 
-✅ implemented (2.0.0–2.2.0) · 🔜 planned (version noted per row) · ⬜ roadmap / no current plans — PRs welcome
+✅ implemented (2.0.0–3.0.0) · 🔜 planned (version noted per row) · ⬜ roadmap / no current plans — PRs welcome
 
 ## Development
 

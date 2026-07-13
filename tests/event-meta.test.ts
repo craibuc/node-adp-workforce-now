@@ -67,11 +67,3 @@ describe('worker.eventMeta', () => {
     expect(calls[2].url).toBe('https://api.adp.com/events/hr/v1/worker.hire/meta');
   });
 });
-
-describe('worker.hireMeta (deprecated)', () => {
-  it('still returns the raw meta body', async () => {
-    const { client } = makeClient([TOKEN_RESPONSE, { status: 200, json: syntheticRehireMeta }]);
-    const raw = await client.worker.hireMeta();
-    expect(raw).toEqual(syntheticRehireMeta);
-  });
-});
