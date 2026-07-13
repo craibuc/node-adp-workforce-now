@@ -1,6 +1,6 @@
 {
   "name": "@craibuc/adp-workforce-now",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "TypeScript client for ADP Workforce Now: mTLS transport, lazy OAuth, typed errors. Runs on Bun and Node.",
   "type": "module",
   "main": "./dist/index.js",
