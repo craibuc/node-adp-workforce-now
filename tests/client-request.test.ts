@@ -92,3 +92,51 @@ describe('Client.request semantics', () => {
     expect(Object.keys(calls[1].headers).map((h) => h.toLowerCase())).not.toContain('content-length');
   });
 });
+
+describe('Client.raw', () => {
+  it('returns status, headers, and parsed body', async () => {
+    const { client, calls } = makeClient([
+      TOKEN_RESPONSE,
+      { status: 200, json: { hello: 1 }, headers: { 'adp-msg-msgid': 'MSG-1' } },
+    ]);
+
+    const result = await client.raw('GET', '/core/v1/event-notification-messages');
+
+    expect(result.status).toBe(200);
+    expect(result.headers.get('adp-msg-msgid')).toBe('MSG-1');
+    expect(result.body).toEqual({ hello: 1 });
+    expect(calls[1].method).toBe('GET');
+  });
+
+  it('keeps status and headers on 204 (body undefined)', async () => {
+    const { client } = makeClient([TOKEN_RESPONSE, { status: 204, headers: { 'x-probe': 'yes' } }]);
+
+    const result = await client.raw('GET', '/core/v1/event-notification-messages');
+
+    expect(result.status).toBe(204);
+    expect(result.headers.get('x-probe')).toBe('yes');
+    expect(result.body).toBeUndefined();
+  });
+
+  it('throws typed errors on non-2xx like request()', async () => {
+    const { client } = makeClient([TOKEN_RESPONSE, { status: 400, json: rehireAlreadyActive }]);
+    const error = await client.raw('POST', '/events/hr/v1/worker.rehire', {}).catch((e) => e);
+    expect(error).toBeInstanceOf(BadRequestError);
+    expect(error.adpCode).toBe('API_REHIRE_EE_ALREADY_ACTIVE');
+  });
+
+  it('performs the single 401 force-refresh retry', async () => {
+    const { client, calls } = makeClient([
+      TOKEN_RESPONSE,
+      { status: 401, json: {} },
+      FRESH_TOKEN,
+      { status: 200, json: { ok: true }, headers: { 'adp-msg-msgid': 'MSG-2' } },
+    ]);
+
+    const result = await client.raw('GET', '/x');
+
+    expect(result.headers.get('adp-msg-msgid')).toBe('MSG-2');
+    expect(calls).toHaveLength(4);
+    expect(calls[3].headers.Authorization).toBe('Bearer tok-2');
+  });
+});

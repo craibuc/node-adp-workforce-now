@@ -17,6 +17,7 @@ describe('public export surface', () => {
     expect(api.createNodeTransport).toBeFunction();
     expect(api.EventValidationError).toBeFunction();
     expect(api.WorkerSearch).toBeFunction();
+    expect(api.EventNotifications).toBeFunction();
   });
 
   it('does NOT export WindmillTokenStore from the main entry', () => {

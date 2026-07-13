@@ -23,4 +23,16 @@ describe.skipIf(!hasCredentials)('live ADP smoke test', () => {
     const worker = await liveClient().worker.get(ADP_ASSOCIATE_OID!);
     expect(worker?.associateOID).toBe(ADP_ASSOCIATE_OID!);
   }, 15000);
+
+  it('event-notification queue: next() returns null or a well-formed head (NEVER deletes)', async () => {
+    const message = await liveClient().eventNotifications.next();
+    if (message === null) {
+      console.log('event-notification queue: empty (204)');
+    } else {
+      expect(typeof message.messageId).toBe('string');
+      expect(message.messageId.length).toBeGreaterThan(0);
+      expect(message.payload).toBeTruthy();
+      console.log(`event-notification queue: head present (messageId length ${message.messageId.length}) — left undeleted`);
+    }
+  }, 15000);
 });

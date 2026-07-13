@@ -118,6 +118,33 @@ Any `worker.*` event not yet wrapped can use the same pipeline directly:
 await client.worker.postEvent('worker.work-assignment.modify', envelope);
 ```
 
+### Event notifications
+
+ADP's event-notification queue delivers subscribed events **one message at a
+time**: `next()` returns the head of the queue — the *same* message until you
+acknowledge it — and `delete(messageId)` is the acknowledgment that makes the
+next message available. Delete after successful processing and you get
+at-least-once semantics. Empty values are `null` (not `undefined`) so
+flow-step results survive JSON serialization.
+
+```typescript
+// Process up to 50 queued notifications:
+for (let i = 0; i < 50; i++) {
+  const message = await client.eventNotifications.next();
+  if (message === null) break;              // queue empty
+  await handle(message.payload);            // your logic
+  await client.eventNotifications.delete(message.messageId); // ack -> advances queue
+}
+```
+
+In a Windmill flow, each iteration can be its own loop step — the queue holds
+the position, so there is no index to carry between iterations.
+
+Header-dependent endpoints like this one are built on the `client.raw`
+escape hatch (`raw(method, path, data?)` → `{ status, headers, body }`),
+which is public and carries the same auth, mTLS, retry, and typed-error
+semantics as `get`/`post`.
+
 ### Token stores
 
 Tokens are cached via a pluggable `TokenStore` (default: in-memory). The
@@ -153,12 +180,14 @@ extraction still apply).
 | ✅ | `POST /events/hr/v1/worker.rehire` | `Worker.rehire` | Rehire a terminated worker as of an effective date |
 | ✅ | `POST /events/hr/v1/worker.work-assignment.terminate` | `Worker.terminate` | Terminate a work assignment (reason code, termination/last-worked date, eligibility indicators) |
 | ✅ | any other endpoint | `Client.get`, `Client.post` | Escape hatch for unwrapped endpoints — auth, mTLS, and typed-error extraction still apply |
+| ✅ | any endpoint (with headers) | `Client.raw` | Escape hatch returning { status, headers, body } — same auth/retry/error semantics |
 | ✅ | `POST /events/hr/v1/worker.work-assignment.base-remuneration.change` | `Worker.changeBaseRemuneration` | Change a worker's pay rate (hourly/daily/salary) as of an effective date |
 | ✅ | `GET  /events/hr/v1/{event}/meta` | `Worker.eventMeta` (+ `Worker.postEvent` pipeline) | Event metadata for any worker.* event, cached (default 12 h); powers client-side envelope validation |
 | ✅ | `POST /events/hr/v1/worker.legal-name.change` | `Worker.changeLegalName` | Change a worker's legal name as of an effective date |
 | ✅ | `POST /events/hr/v1/worker.person.custom-field.string.change` | `Worker.changeCustomFieldString` | Change a string-typed custom field on a worker's record |
 | ✅ | `POST /events/hr/v1/worker.leave.absence.request` | `Worker.requestLeaveAbsence` | Request a leave of absence (leave-type code, start/expected-return dates) |
-| 🔜 | `GET /core/v1/event-notification-messages` | `EventNotifications.next` / `delete` (`client.eventNotifications`, v2.3) | Event-notification queue (one message per call; delete handle in a response header) |
+| ✅ | `GET /core/v1/event-notification-messages` | `EventNotifications.next` | Head of the event-notification queue ({ messageId, payload }, null when empty); same message until deleted |
+| ✅ | `DELETE /core/v1/event-notification-messages/{id}` | `EventNotifications.delete` | Acknowledge a message (echoes the deleted record); advances the queue |
 | 🔜 | `GET /hr/v2/workers/{aoid}/worker-images/photo` + `POST /events/hr/v1/worker.photo.upload` | v2.4 | Read and upload a worker's photo |
 | ⬜ | `POST /events/hr/v1/worker.work-assignment.modify` | roadmap | Modify an existing work assignment |
 | ⬜ | contact-info change events | roadmap | Change a worker's phone/email contact info |
@@ -166,7 +195,7 @@ extraction still apply).
 | ⬜ | `POST /events/hr/v1/worker.pay-distribution.change` | roadmap | Change a worker's pay distribution (direct deposit accounts) |
 | ⬜ | legacy worker-profile v1 `PUT` endpoints | not planned | Superseded by the event-based writes above |
 
-✅ implemented (2.0.0–3.0.0) · 🔜 planned (version noted per row) · ⬜ roadmap / no current plans — PRs welcome
+✅ implemented (2.0.0–3.1.0) · 🔜 planned (version noted per row) · ⬜ roadmap / no current plans — PRs welcome
 
 ## Development
 

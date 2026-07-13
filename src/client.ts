@@ -4,6 +4,7 @@ import type { CachedToken, TokenStore } from './token-store/types.js';
 import { createBunTransport } from './transport/bun.js';
 import { createNodeTransport } from './transport/node.js';
 import type { AdpTransport, TransportTls } from './transport/types.js';
+import { EventNotifications } from './event-notifications.js';
 import { Worker } from './worker.js';
 
 const DEFAULT_API_BASE_URL = 'https://api.adp.com';
@@ -49,6 +50,7 @@ async function parseBody(response: Response): Promise<unknown> {
 
 export class Client {
   readonly worker: Worker;
+  readonly eventNotifications: EventNotifications;
   private readonly transport: AdpTransport;
   private readonly tokenStore: TokenStore;
   private readonly credentials?: { client_id: string; client_secret: string };
@@ -69,6 +71,7 @@ export class Client {
     this.validateEvents = options.validateEvents ?? true;
     this.metaCacheTtlMs = options.metaCacheTtlMs ?? 12 * 60 * 60 * 1000;
     this.worker = new Worker(this);
+    this.eventNotifications = new EventNotifications(this);
   }
 
   async authenticate(): Promise<CachedToken> {
@@ -129,7 +132,17 @@ export class Client {
     return this.transport.request(url, { method, headers, body });
   }
 
-  async request(method: string, path: string, data?: unknown): Promise<unknown> {
+  /**
+   * Escape hatch: same auth/mTLS/401-retry/error semantics as request(),
+   * but exposes response status and headers (some ADP endpoints carry data
+   * in headers — e.g. the event-notification delete handle). 204 resolves
+   * with body undefined but real status/headers.
+   */
+  async raw(
+    method: string,
+    path: string,
+    data?: unknown,
+  ): Promise<{ status: number; headers: Headers; body: unknown }> {
     const url = `${this.apiBaseUrl}${path}`;
     const endpoint = `${method} ${path}`;
 
@@ -143,12 +156,14 @@ export class Client {
       response = await this.send(method, url, token, data);
     }
 
-    // Empty result (end of pages, empty event queue) — callers detect undefined.
-    if (response.status === 204) return undefined;
+    const body = response.status === 204 ? undefined : await parseBody(response);
+    if (!response.ok) raiseForAdp(response.status, body, endpoint);
+    return { status: response.status, headers: response.headers, body };
+  }
 
-    const json = await parseBody(response);
-    if (!response.ok) raiseForAdp(response.status, json, endpoint);
-    return json;
+  async request(method: string, path: string, data?: unknown): Promise<unknown> {
+    // 204 -> undefined is preserved via raw()'s undefined body.
+    return (await this.raw(method, path, data)).body;
   }
 
   get(path: string): Promise<unknown> {

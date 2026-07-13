@@ -11,6 +11,8 @@ export interface CannedResponse {
   status: number;
   json?: unknown;
   text?: string;
+  /** Extra response headers merged over the default content-type. */
+  headers?: Record<string, string>;
 }
 
 export function makeFakeTransport(responses: CannedResponse[]) {
@@ -23,7 +25,10 @@ export function makeFakeTransport(responses: CannedResponse[]) {
       if (!next) throw new Error(`fake transport queue empty (call #${calls.length}: ${init.method} ${url})`);
       const body =
         next.status === 204 ? null : next.text !== undefined ? next.text : JSON.stringify(next.json ?? null);
-      return new Response(body, { status: next.status, headers: { 'content-type': 'application/json' } });
+      return new Response(body, {
+        status: next.status,
+        headers: { 'content-type': 'application/json', ...(next.headers ?? {}) },
+      });
     },
   };
   return { transport, calls };

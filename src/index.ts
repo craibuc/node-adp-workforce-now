@@ -30,3 +30,5 @@ export type { CachedToken, TokenStore } from './token-store/types.js';
 export { createBunTransport } from './transport/bun.js';
 export { createNodeTransport } from './transport/node.js';
 export type { AdpTransport, TransportInit, TransportTls } from './transport/types.js';
+export { EventNotifications } from './event-notifications.js';
+export type { EventNotificationMessage } from './event-notifications.js';
