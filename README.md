@@ -91,20 +91,20 @@ Endpoint → `Class.method` mapping. `Worker` methods are reached via
 `Client.get` / `Client.post` escape hatches (auth, mTLS, and error
 extraction still apply).
 
-| Status | ADP endpoint | Library API |
-|:---:|---|---|
-| ✅ | `POST accounts.adp.com/auth/oauth/v2/token` | `Client.authenticate` (also implicit — lazy auth on any call) |
-| ✅ | `GET /hr/v2/workers` (`$top`/`$skip` paging) | `Worker.pages`, `Worker.all`, `Worker.find` |
-| ✅ | `GET /hr/v2/workers/{aoid}` | `Worker.one` |
-| ✅ | `POST /events/hr/v1/worker.hire` | `Worker.hire` |
-| ✅ | `GET /events/hr/v1/worker.hire/meta` | `Worker.hireMeta` (raw passthrough) |
-| ✅ | `POST /events/hr/v1/worker.rehire` | `Worker.rehire` |
-| ✅ | `POST /events/hr/v1/worker.work-assignment.terminate` | `Worker.terminate` |
-| ✅ | any other endpoint | `Client.get`, `Client.post` (escape hatch) |
-| 🔜 | `POST /events/hr/v1/worker.work-assignment.base-remuneration.change` | `Worker.changeBaseRemuneration` (planned) |
-| 🔜 | `GET  /events/hr/v1/worker.work-assignment.base-remuneration.change/meta` | planned — with tenant-level meta caching and client-side payload validation before POST |
-| ⬜ | `GET /core/v1/event-notification-messages` (event queue) | unplanned |
-| ⬜ | legacy worker-profile v1 `PUT` endpoints | not planned — superseded by the event-based writes above |
+| Status | ADP endpoint | Library API | Description |
+|:---:|---|---|---|
+| ✅ | `POST accounts.adp.com/auth/oauth/v2/token` | `Client.authenticate` | OAuth client-credentials token over mTLS; called lazily on any request, cached in the `TokenStore`, refreshed 300 s before expiry |
+| ✅ | `GET /hr/v2/workers` (`$top`/`$skip` paging) | `Worker.pages`, `Worker.all`, `Worker.find` | List workers: lazy page iterator, full accumulation, or first-match search with early exit |
+| ✅ | `GET /hr/v2/workers/{aoid}` | `Worker.one` | Fetch a single worker by associate OID |
+| ✅ | `POST /events/hr/v1/worker.hire` | `Worker.hire` | Hire a new worker (legal name, SSN, address, hire date, payroll group) |
+| ✅ | `GET /events/hr/v1/worker.hire/meta` | `Worker.hireMeta` | Hire-event metadata (field constraints, code lists) — raw passthrough |
+| ✅ | `POST /events/hr/v1/worker.rehire` | `Worker.rehire` | Rehire a terminated worker as of an effective date |
+| ✅ | `POST /events/hr/v1/worker.work-assignment.terminate` | `Worker.terminate` | Terminate a work assignment (reason code, termination/last-worked date, eligibility indicators) |
+| ✅ | any other endpoint | `Client.get`, `Client.post` | Escape hatch for unwrapped endpoints — auth, mTLS, and typed-error extraction still apply |
+| 🔜 | `POST /events/hr/v1/worker.work-assignment.base-remuneration.change` | `Worker.changeBaseRemuneration` | Change a worker's pay rate (hourly/daily/salary) as of an effective date |
+| 🔜 | `GET  /events/hr/v1/worker.work-assignment.base-remuneration.change/meta` | planned | Event metadata with tenant-level caching; used to validate payloads client-side before POSTing |
+| ⬜ | `GET /core/v1/event-notification-messages` | unplanned | Event-notification queue (one message per call; delete handle in a response header) |
+| ⬜ | legacy worker-profile v1 `PUT` endpoints | not planned | Superseded by the event-based writes above |
 
 ✅ implemented (2.0.0) · 🔜 planned (next milestone) · ⬜ no current plans — PRs welcome
 
