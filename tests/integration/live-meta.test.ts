@@ -194,15 +194,19 @@ const EVENTS = Object.keys(ENVELOPES) as SupportedEvent[];
 // robust to fake test values that could never satisfy tenant code lists
 // (exact-match `validateEnvelope` would false-positive-fail on those).
 describe.skipIf(!hasCredentials)('live event metas', () => {
-  const client = new Client(ADP_CERTIFICATE!, ADP_PRIVATE_KEY!, {
-    credentials: { client_id: ADP_CLIENT_ID!, client_secret: ADP_CLIENT_SECRET! },
-  });
+  // Lazy: the describe body executes at collection time even when skipIf is
+  // true, so constructing the Client here would crash CI (no ADP_* vars).
+  let client: Client | undefined;
+  const liveClient = () =>
+    (client ??= new Client(ADP_CERTIFICATE!, ADP_PRIVATE_KEY!, {
+      credentials: { client_id: ADP_CLIENT_ID!, client_secret: ADP_CLIENT_SECRET! },
+    }));
 
   for (const event of EVENTS) {
     it(`fetches, parses, and checks structural coverage for the ${event} meta`, async () => {
       let meta;
       try {
-        meta = await client.worker.eventMeta(event);
+        meta = await liveClient().worker.eventMeta(event);
       } catch (error) {
         if (!(error instanceof AdpError)) throw error;
         if (KNOWN_UNAVAILABLE.has(event)) {
