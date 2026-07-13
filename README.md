@@ -5,7 +5,8 @@ transport, lazy OAuth client-credentials auth, typed errors, paginated worker
 reads, and lifecycle events (hire / rehire / terminate).
 
 Runs on **Bun ≥ 1.2** (tested on 1.3) and **Node ≥ 20**. Zero runtime
-dependencies.
+dependencies (one optional-integration peer, `windmill-client`, is only
+ever loaded by the `./windmill` token store).
 
 ## Install
 

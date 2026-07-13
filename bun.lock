@@ -8,6 +8,9 @@
         "@types/node": "^24.0.0",
         "typescript": "^5.5.0",
       },
+      "peerDependencies": {
+        "windmill-client": ">=1",
+      },
     },
   },
   "packages": {
@@ -16,5 +19,7 @@
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "undici-types": ["undici-types@7.18.2", "", {}, "sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w=="],
+
+    "windmill-client": ["windmill-client@1.756.0", "", {}, "sha512-hKOYlE8U00Yh6BBsJD4RofCl2upbi5RAkcWcPbtJ9yaQLjfdPA4acjYF0HjA1bSZavVsssywSoTtViDU1E2bTA=="],
   }
 }

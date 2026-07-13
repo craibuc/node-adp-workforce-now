@@ -50,6 +50,9 @@
     "url": "https://github.com/craibuc/node-adp-workforce-now/issues"
   },
   "homepage": "https://github.com/craibuc/node-adp-workforce-now#readme",
+  "peerDependencies": {
+    "windmill-client": ">=1"
+  },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "typescript": "^5.5.0"
