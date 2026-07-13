@@ -1,7 +1,16 @@
 export { Client, normalizePem } from './client.js';
 export type { ClientOptions } from './client.js';
 export { Worker } from './worker.js';
-export type { HireParams, RehireParams, TerminateParams, WorkerRecord } from './worker.js';
+export type {
+  ChangeBaseRemunerationParams,
+  ChangeCustomFieldStringParams,
+  ChangeLegalNameParams,
+  HireParams,
+  RehireParams,
+  RequestLeaveAbsenceParams,
+  TerminateParams,
+  WorkerRecord,
+} from './worker.js';
 export {
   AdpError,
   BadRequestError,
@@ -11,6 +20,8 @@ export {
   raiseForAdp,
 } from './errors.js';
 export type { AdpErrorArgs } from './errors.js';
+export { EventValidationError } from './meta.js';
+export type { EventMeta, FieldRule, SupportedEvent, ValidationIssue } from './meta.js';
 export { MemoryTokenStore } from './token-store/memory.js';
 export type { CachedToken, TokenStore } from './token-store/types.js';
 export { createBunTransport } from './transport/bun.js';

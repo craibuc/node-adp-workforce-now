@@ -7,7 +7,7 @@ const CREDS = { client_id: 'id-1', client_secret: 'secret-1' };
 
 function makeClient() {
   const { transport, calls } = makeFakeTransport([TOKEN_RESPONSE, { status: 200, json: { events: [] } }]);
-  const client = new Client(PEM, PEM, { credentials: CREDS, transport });
+  const client = new Client(PEM, PEM, { credentials: CREDS, transport, validateEvents: false });
   return { client, calls };
 }
 

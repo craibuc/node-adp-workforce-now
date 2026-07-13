@@ -1,0 +1,22 @@
+{
+  "meta": {
+    "/data/transforms": [
+      {
+        "/effectiveDateTime": { "optional": false },
+        "/worker/associateOID": { "optional": false, "minLength": 1, "maxLength": 64 },
+        "/worker/workerDates/rehireDate": {
+          "optional": false,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "/worker/workerStatus/reasonCode/codeValue": {
+          "optional": false,
+          "codeList": {
+            "listItems": [{ "codeValue": "IMPORT" }, { "codeValue": "REHIRE" }]
+          }
+        },
+        "/worker/workerID/idValue": { "readOnly": true },
+        "/worker/customArea/internalFlag": { "hidden": true }
+      }
+    ]
+  }
+}

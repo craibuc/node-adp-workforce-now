@@ -19,6 +19,10 @@ export interface ClientOptions {
   tokenUrl?: string;
   /** Default true. Pass false to receive unmasked government IDs. */
   masked?: boolean;
+  /** Client-side envelope validation against event metas. Default true. */
+  validateEvents?: boolean;
+  /** Meta cache TTL in ms. Default 12 h. Exposed primarily as a test hook. */
+  metaCacheTtlMs?: number;
 }
 
 /** Accepts raw PEM or base64-encoded PEM (the `.env` convention). */
@@ -51,6 +55,8 @@ export class Client {
   private readonly apiBaseUrl: string;
   private readonly tokenUrl: string;
   private readonly masked: boolean;
+  readonly validateEvents: boolean;
+  readonly metaCacheTtlMs: number;
 
   constructor(certificate: string, privateKey: string, options: ClientOptions = {}) {
     const tls: TransportTls = { cert: normalizePem(certificate), key: normalizePem(privateKey) };
@@ -60,6 +66,8 @@ export class Client {
     this.apiBaseUrl = options.apiBaseUrl ?? DEFAULT_API_BASE_URL;
     this.tokenUrl = options.tokenUrl ?? DEFAULT_TOKEN_URL;
     this.masked = options.masked ?? true;
+    this.validateEvents = options.validateEvents ?? true;
+    this.metaCacheTtlMs = options.metaCacheTtlMs ?? 12 * 60 * 60 * 1000;
     this.worker = new Worker(this);
   }
 
