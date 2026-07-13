@@ -43,6 +43,17 @@ live in [`docs/superpowers/specs/2026-07-10-v2-core-migration-design.md`](docs/s
   active `assignmentStatus`) — never take index 0 blindly.
 - `effectiveDate` is chosen by the caller (usually next pay period start), not
   read from anywhere; backdating does NOT auto-calculate retro pay.
+- **Workers v2 `$filter`** (recorded working examples, values sanitized):
+  - by status: `$filter=workers/workAssignments/assignmentStatus/statusCode/codeValue eq 'T'`
+  - by last name: `$filter=workers/person/legalName/familyName1 eq 'Last'`
+  - by first name: `$filter=workers/person/legalName/givenName eq 'First'`
+  - by org unit (compound `and` WITHIN one param — observed working):
+    `$filter=workers/workAssignments/homeOrganizationalUnits/typeCode/codeValue eq 'Department' and workers/workAssignments/homeOrganizationalUnits/nameCode/codeValue eq '000001'`
+  - **Gotcha:** sending TWO separate `$filter=` query params does NOT combine
+    them — one is silently ignored (observed with familyName1 + givenName).
+    Combine predicates with `and` inside a single `$filter` param instead;
+    whether name-field `and` combos work server-side is untested (org-unit
+    ones do) — verify before designing `findByName`.
 - **Meta validation**: event metas are tenant-level (not per-worker) → safe to
   cache 12–24 h. Meta maps JSON-pointer-ish paths → constraints:
   `optional`, `readOnly`, `hidden`, `codeList.listItems[].codeValue`,
