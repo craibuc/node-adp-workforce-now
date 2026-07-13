@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { Client, normalizePem } from '../src/client.js';
 import { MemoryTokenStore } from '../src/token-store/memory.js';
-import { UnauthorizedError } from '../src/errors.js';
+import { AdpError, UnauthorizedError } from '../src/errors.js';
 import { TOKEN_RESPONSE, makeFakeTransport } from './helpers/fake-transport.js';
 
 const PEM = '-----BEGIN CERTIFICATE-----\nFAKE\n-----END CERTIFICATE-----\n';
@@ -99,5 +99,16 @@ describe('Client token lifecycle', () => {
     const { client } = makeClient([TOKEN_RESPONSE]);
     const token = await client.authenticate();
     expect(token.access_token).toBe('tok-1');
+  });
+
+  it('throws a clear AdpError on a malformed 200 token response', async () => {
+    const { client, store } = makeClient([{ status: 200, json: { token_type: 'Bearer' } }]);
+
+    const error = await client.authenticate().catch((e) => e);
+
+    expect(error).toBeInstanceOf(AdpError);
+    expect(error.adpMessage).toContain('Malformed token response');
+    expect(error.endpoint).toBe('POST /auth/oauth/v2/token');
+    expect(await store.get()).toBeUndefined(); // nothing bogus cached
   });
 });

@@ -1,4 +1,4 @@
-import { raiseForAdp } from './errors.js';
+import { AdpError, raiseForAdp } from './errors.js';
 import { MemoryTokenStore } from './token-store/memory.js';
 import type { CachedToken, TokenStore } from './token-store/types.js';
 import { createBunTransport } from './transport/bun.js';
@@ -79,7 +79,17 @@ export class Client {
     });
     const json = await parseBody(response);
     if (!response.ok) raiseForAdp(response.status, json, 'POST /auth/oauth/v2/token');
-    const { access_token, expires_in } = json as { access_token: string; expires_in: number };
+    const { access_token, expires_in } = json as { access_token?: unknown; expires_in?: unknown };
+    if (typeof access_token !== 'string' || typeof expires_in !== 'number') {
+      // Fail here with a clear error instead of caching "Bearer undefined" /
+      // NaN expiry and surfacing later as inexplicable 401s.
+      throw new AdpError({
+        statusCode: response.status,
+        endpoint: 'POST /auth/oauth/v2/token',
+        adpMessage: 'Malformed token response: expected access_token (string) and expires_in (number)',
+        raw: json,
+      });
+    }
     const token: CachedToken = {
       access_token,
       expires_at: Math.floor(Date.now() / 1000) + expires_in,
