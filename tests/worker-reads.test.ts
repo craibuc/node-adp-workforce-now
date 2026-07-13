@@ -33,6 +33,28 @@ describe('worker.one', () => {
   });
 });
 
+describe('worker.page', () => {
+  it('fetches a single page by index with $top/$skip', async () => {
+    const { client, calls } = makeClient([TOKEN_RESPONSE, { status: 200, json: { workers: [w('E'), w('F')] } }]);
+
+    const workers = await client.worker.page(2, 2);
+
+    expect(workers).toEqual([w('E'), w('F')]);
+    expect(calls[1].url).toBe('https://api.adp.com/hr/v2/workers?$top=2&$skip=4');
+  });
+
+  it('returns undefined past the end (204)', async () => {
+    const { client } = makeClient([TOKEN_RESPONSE, { status: 204 }]);
+    expect(await client.worker.page(50, 100)).toBeUndefined();
+  });
+
+  it('defaults pageSize to 100', async () => {
+    const { client, calls } = makeClient([TOKEN_RESPONSE, { status: 200, json: { workers: [w('A')] } }]);
+    await client.worker.page(0);
+    expect(calls[1].url).toBe('https://api.adp.com/hr/v2/workers?$top=100&$skip=0');
+  });
+});
+
 describe('worker.pages / worker.all', () => {
   it('walks $top/$skip pages until 204 and accumulates', async () => {
     const { client, calls } = makeClient([

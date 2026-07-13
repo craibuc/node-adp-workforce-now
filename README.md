@@ -125,7 +125,7 @@ extraction still apply).
 | Status | ADP endpoint | Library API | Description |
 |:---:|---|---|---|
 | ✅ | `POST accounts.adp.com/auth/oauth/v2/token` | `Client.authenticate` | OAuth client-credentials token over mTLS; called lazily on any request, cached in the `TokenStore`, refreshed 300 s before expiry |
-| ✅ | `GET /hr/v2/workers` (`$top`/`$skip` paging) | `Worker.pages`, `Worker.all`, `Worker.find` | List workers: lazy page iterator, full accumulation, or first-match search with early exit |
+| ✅ | `GET /hr/v2/workers` (`$top`/`$skip` paging) | `Worker.pages`, `Worker.all`, `Worker.find`, `Worker.page` | List workers: lazy page iterator, full accumulation, first-match search with early exit, or stateless single-page fetch (for flow-engine loops) |
 | ✅ | `GET /hr/v2/workers/{aoid}` | `Worker.one` | Fetch a single worker by associate OID |
 | ✅ | `POST /events/hr/v1/worker.hire` | `Worker.hire` | Hire a new worker (legal name, SSN, address, hire date, payroll group) |
 | ✅ | `GET /events/hr/v1/worker.hire/meta` | `Worker.hireMeta` | Hire-event metadata (field constraints, code lists) — raw passthrough (deprecated — use `Worker.eventMeta`) |
@@ -137,17 +137,17 @@ extraction still apply).
 | ✅ | `POST /events/hr/v1/worker.legal-name.change` | `Worker.changeLegalName` | Change a worker's legal name as of an effective date |
 | ✅ | `POST /events/hr/v1/worker.person.custom-field.string.change` | `Worker.changeCustomFieldString` | Change a string-typed custom field on a worker's record |
 | ✅ | `POST /events/hr/v1/worker.leave.absence.request` | `Worker.requestLeaveAbsence` | Request a leave of absence (leave-type code, start/expected-return dates) |
-| 🔜 | `GET /core/v1/event-notification-messages` | `EventNotifications.next` / `delete` (`client.eventNotifications`, v2.2) | Event-notification queue (one message per call; delete handle in a response header) |
-| 🔜 | `GET /hr/v2/workers?$filter=…` | `Worker.findByName` (v2.2) | Server-side filtered search by worker name |
-| 🔜 | client-side SSN lookup | `Worker.findBySSN` (v2.2) | Search workers by SSN (client-side match over paged results) |
-| 🔜 | `GET /hr/v2/workers/{aoid}/worker-images/photo` + `POST /events/hr/v1/worker.photo.upload` | v2.3 | Read and upload a worker's photo |
+| 🔜 | `GET /core/v1/event-notification-messages` | `EventNotifications.next` / `delete` (`client.eventNotifications`, v2.3) | Event-notification queue (one message per call; delete handle in a response header) |
+| 🔜 | `GET /hr/v2/workers?$filter=…` | `Worker.findByName` (v2.3) | Server-side filtered search by worker name |
+| 🔜 | client-side SSN lookup | `Worker.findBySSN` (v2.3) | Search workers by SSN (client-side match over paged results) |
+| 🔜 | `GET /hr/v2/workers/{aoid}/worker-images/photo` + `POST /events/hr/v1/worker.photo.upload` | v2.4 | Read and upload a worker's photo |
 | ⬜ | `POST /events/hr/v1/worker.work-assignment.modify` | roadmap | Modify an existing work assignment |
 | ⬜ | contact-info change events | roadmap | Change a worker's phone/email contact info |
 | ⬜ | address change events | roadmap | Change a worker's home/mailing address |
 | ⬜ | `POST /events/hr/v1/worker.pay-distribution.change` | roadmap | Change a worker's pay distribution (direct deposit accounts) |
 | ⬜ | legacy worker-profile v1 `PUT` endpoints | not planned | Superseded by the event-based writes above |
 
-✅ implemented (2.0.0–2.1.0) · 🔜 planned (version noted per row) · ⬜ roadmap / no current plans — PRs welcome
+✅ implemented (2.0.0–2.2.0) · 🔜 planned (version noted per row) · ⬜ roadmap / no current plans — PRs welcome
 
 ## Development
 

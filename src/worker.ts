@@ -198,12 +198,21 @@ export class Worker {
     return response?.workers?.[0];
   }
 
+  /**
+   * Stateless single-page fetch — for external loops (e.g. Windmill flow
+   * while-loops) where each iteration runs in a fresh process and cannot
+   * hold a generator across iterations. `undefined` past the last page.
+   */
+  async page(index: number, pageSize = 100): Promise<WorkerRecord[] | undefined> {
+    const response = (await this.client.get(
+      `/hr/v2/workers?$top=${pageSize}&$skip=${index * pageSize}`,
+    )) as { workers?: WorkerRecord[] } | undefined;
+    return response?.workers;
+  }
+
   async *pages(pageSize = 100): AsyncGenerator<WorkerRecord[], void, void> {
-    for (let page = 0; ; page++) {
-      const response = (await this.client.get(
-        `/hr/v2/workers?$top=${pageSize}&$skip=${page * pageSize}`,
-      )) as { workers?: WorkerRecord[] } | undefined;
-      const workers = response?.workers;
+    for (let index = 0; ; index++) {
+      const workers = await this.page(index, pageSize);
       if (!workers || workers.length === 0) return;
       yield workers;
     }
