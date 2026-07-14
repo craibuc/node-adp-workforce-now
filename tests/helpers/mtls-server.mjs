@@ -24,6 +24,7 @@ export function startMtlsServer({ cert, key }) {
             authorized: req.socket.authorized,
             headers: req.headers,
             body: Buffer.concat(chunks).toString('utf8'),
+            bodyBase64: Buffer.concat(chunks).toString('base64'),
           }),
         );
       });

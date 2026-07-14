@@ -28,4 +28,22 @@ describe('createBunTransport', () => {
     expect(captured?.init.redirect).toBe('manual');
     expect(captured?.init.tls).toEqual({ cert: 'CERT', key: 'KEY' });
   });
+
+  it('passes Uint8Array bodies through to fetch untouched', async () => {
+    let captured: { init: Record<string, unknown> } | undefined;
+    globalThis.fetch = (async (_url: unknown, init: unknown) => {
+      captured = { init: init as Record<string, unknown> };
+      return new Response('{}', { status: 200 });
+    }) as typeof fetch;
+
+    const transport = createBunTransport({ cert: 'CERT', key: 'KEY' });
+    const bytes = new Uint8Array([0xff, 0xd8, 0xff, 0x00]);
+    await transport.request('https://example.invalid/x', {
+      method: 'POST',
+      headers: { 'Content-Type': 'image/jpeg' },
+      body: bytes,
+    });
+
+    expect(captured?.init.body).toBe(bytes);
+  });
 });

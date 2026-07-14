@@ -145,6 +145,33 @@ escape hatch (`raw(method, path, data?)` → `{ status, headers, body }`),
 which is public and carries the same auth, mTLS, retry, and typed-error
 semantics as `get`/`post`.
 
+### Worker photos
+
+```typescript
+const photo = await client.worker.getPhoto(aoid);   // { contentType, bytes } | null (none on file)
+
+await client.worker.setPhoto({
+  associateOID: aoid,
+  image: bytes,                 // Uint8Array, or a base64 string (auto-decoded)
+  // contentType/filename optional — the type is sniffed from the image bytes
+});
+```
+
+`setPhoto` checks the image size against your tenant's limit (from the
+upload event's metadata) before sending anything — an oversized photo fails
+fast with both numbers in the error. The library does not resize images
+(that needs an image codec); in your own script:
+
+```typescript
+import sharp from 'sharp'; // consumer dependency, e.g. in a Windmill step
+const resized = await sharp(original).resize({ width: 400 }).jpeg({ quality: 80 }).toBuffer();
+await client.worker.setPhoto({ associateOID: aoid, image: new Uint8Array(resized) });
+```
+
+Crossing Windmill flow-step boundaries: photos are binary, flow results are
+JSON — convert with `Buffer.from(photo.bytes).toString('base64')` on the way
+out, and pass the base64 string straight back into `setPhoto`.
+
 ### Token stores
 
 Tokens are cached via a pluggable `TokenStore` (default: in-memory). The
@@ -188,14 +215,15 @@ extraction still apply).
 | ✅ | `POST /events/hr/v1/worker.leave.absence.request` | `Worker.requestLeaveAbsence` | Request a leave of absence (leave-type code, start/expected-return dates) |
 | ✅ | `GET /core/v1/event-notification-messages` | `EventNotifications.next` | Head of the event-notification queue ({ messageId, payload }, null when empty); same message until deleted |
 | ✅ | `DELETE /core/v1/event-notification-messages/{id}` | `EventNotifications.delete` | Acknowledge a message (echoes the deleted record); advances the queue |
-| 🔜 | `GET /hr/v2/workers/{aoid}/worker-images/photo` + `POST /events/hr/v1/worker.photo.upload` | v2.4 | Read and upload a worker's photo |
+| ✅ | `GET /hr/v2/workers/{aoid}/worker-images/photo` | `Worker.getPhoto` | Worker photo as bytes + content type; null when none on file |
+| ✅ | `POST /events/hr/v1/worker.photo.upload` | `Worker.setPhoto` | Multipart photo upload with tenant-meta size preflight and jpeg/png type sniff |
 | ⬜ | `POST /events/hr/v1/worker.work-assignment.modify` | roadmap | Modify an existing work assignment |
 | ⬜ | contact-info change events | roadmap | Change a worker's phone/email contact info |
 | ⬜ | address change events | roadmap | Change a worker's home/mailing address |
 | ⬜ | `POST /events/hr/v1/worker.pay-distribution.change` | roadmap | Change a worker's pay distribution (direct deposit accounts) |
 | ⬜ | legacy worker-profile v1 `PUT` endpoints | not planned | Superseded by the event-based writes above |
 
-✅ implemented (2.0.0–3.1.0) · 🔜 planned (version noted per row) · ⬜ roadmap / no current plans — PRs welcome
+✅ implemented (2.0.0–3.2.0) · 🔜 planned (version noted per row) · ⬜ roadmap / no current plans — PRs welcome
 
 ## Development
 

@@ -4,13 +4,15 @@ export interface RecordedCall {
   url: string;
   method: string;
   headers: Record<string, string>;
-  body?: string;
+  body?: string | Uint8Array;
 }
 
 export interface CannedResponse {
   status: number;
   json?: unknown;
   text?: string;
+  /** Binary response body; wins over json/text when set. */
+  bytes?: Uint8Array;
   /** Extra response headers merged over the default content-type. */
   headers?: Record<string, string>;
 }
@@ -24,7 +26,7 @@ export function makeFakeTransport(responses: CannedResponse[]) {
       const next = queue.shift();
       if (!next) throw new Error(`fake transport queue empty (call #${calls.length}: ${init.method} ${url})`);
       const body =
-        next.status === 204 ? null : next.text !== undefined ? next.text : JSON.stringify(next.json ?? null);
+        next.status === 204 ? null : next.bytes ?? (next.text !== undefined ? next.text : JSON.stringify(next.json ?? null));
       return new Response(body, {
         status: next.status,
         headers: { 'content-type': 'application/json', ...(next.headers ?? {}) },

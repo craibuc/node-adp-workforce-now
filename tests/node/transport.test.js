@@ -44,3 +44,22 @@ test('node transport returns a well-formed 204 Response', async () => {
     await server.close();
   }
 });
+
+test('node transport round-trips a binary body with byte-accurate Content-Length', async () => {
+  const server = await startMtlsServer({ cert, key });
+  try {
+    const transport = createNodeTransport({ cert, key, ca: cert });
+    const bytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46]);
+    const response = await transport.request(`${server.url}/echo`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/octet-stream' },
+      body: bytes,
+    });
+    assert.equal(response.status, 200);
+    const echo = await response.json();
+    assert.equal(echo.headers['content-length'], String(bytes.byteLength));
+    assert.equal(echo.bodyBase64, Buffer.from(bytes).toString('base64'));
+  } finally {
+    await server.close();
+  }
+});

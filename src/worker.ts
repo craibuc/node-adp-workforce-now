@@ -1,9 +1,10 @@
 import { EventValidationError, parseEventMeta, validateEnvelope } from './meta.js';
 import type { EventMeta, SupportedEvent } from './meta.js';
 import type { Client } from './client.js';
-import { BadRequestError } from './errors.js';
+import { BadRequestError, NotFoundError } from './errors.js';
 import { WorkerSearch, odataEscape } from './search.js';
 import type { WorkerQuery } from './search.js';
+import { buildMultipart, imageToBytes, sniffImageContentType } from './photos.js';
 
 /** Typed only where the library reads/writes; everything else passes through. */
 export interface WorkerRecord {
@@ -99,6 +100,22 @@ export interface RequestLeaveAbsenceParams {
   expectedReturnDate?: string;
   /** Tenant leave-type code — validated against the event meta. */
   leaveTypeCode: string;
+}
+
+export interface WorkerPhoto {
+  /** From the response Content-Type header. */
+  contentType: string;
+  bytes: Uint8Array;
+}
+
+export interface SetPhotoParams {
+  associateOID: string;
+  /** Image bytes, or a base64 string (decoded — the flow-step convention). */
+  image: Uint8Array | string;
+  /** datafile part Content-Type. Default: sniffed from magic bytes (jpeg/png), else image/jpeg. */
+  contentType?: string;
+  /** datafile part filename. Default "photo.jpg". */
+  filename?: string;
 }
 
 /** Negative-cache window for meta-fetch failures (Fix 3): avoids re-hitting a
@@ -239,6 +256,73 @@ export class Worker {
   /** Lazy search handle — fetches nothing until page()/pages()/all()/find(). */
   search(query: WorkerQuery = {}): WorkerSearch {
     return new WorkerSearch(this.client, query);
+  }
+
+  /** Worker photo, or null when none exists (404/204 are normal states). */
+  async getPhoto(aoid: string): Promise<WorkerPhoto | null> {
+    try {
+      const { status, headers, bytes } = await this.client.binaryRequest({
+        method: 'GET',
+        path: `/hr/v2/workers/${encodeURIComponent(aoid)}/worker-images/photo`,
+        bytesResponse: true,
+      });
+      if (status === 204 || bytes === undefined) return null;
+      return { contentType: headers.get('content-type') ?? 'application/octet-stream', bytes };
+    } catch (error) {
+      if (error instanceof NotFoundError) return null;
+      throw error;
+    }
+  }
+
+  /**
+   * Upload (replace) a worker's photo via the worker.photo.upload multipart
+   * event. Preflight: the tenant meta's imageSize limit is enforced
+   * client-side (fail-open when the meta is unavailable); actual resizing
+   * belongs in the caller (see the README recipe).
+   */
+  async setPhoto(params: SetPhotoParams): Promise<unknown> {
+    const bytes = imageToBytes(params.image);
+
+    // Meta-driven size preflight (fail-open; reuses the negative cache).
+    // Skipped entirely when client.validateEvents is false, consistent with postEvent.
+    if (this.client.validateEvents) {
+      let limit: number | undefined;
+      if (Date.now() - (this.metaFailureAt.get('worker.photo.upload') ?? 0) >= META_FAILURE_TTL_MS) {
+        try {
+          const meta = await this.eventMeta('worker.photo.upload');
+          limit = meta.rules.get('transform:/worker/photo/imageSize')?.maxLength;
+        } catch {
+          this.metaFailureAt.set('worker.photo.upload', Date.now());
+          console.warn('worker.photo.upload: meta unavailable, skipping size preflight');
+        }
+      }
+      if (limit !== undefined && bytes.byteLength > limit) {
+        throw new Error(
+          `photo is ${bytes.byteLength} bytes; tenant limit is ${limit} — resize before uploading`,
+        );
+      }
+    }
+
+    const envelope = JSON.stringify({
+      events: [{ data: { eventContext: { worker: { associateOID: params.associateOID } } } }],
+    });
+    const { contentType, body } = buildMultipart([
+      { name: 'json', value: envelope },
+      {
+        name: 'datafile',
+        value: bytes,
+        filename: params.filename ?? 'photo.jpg',
+        contentType: params.contentType ?? sniffImageContentType(bytes),
+      },
+    ]);
+
+    const { body: responseBody } = await this.client.binaryRequest({
+      method: 'POST',
+      path: '/events/hr/v1/worker.photo.upload',
+      body,
+      contentType,
+    });
+    return responseBody;
   }
 
   hire(params: HireParams): Promise<unknown> {

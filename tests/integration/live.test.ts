@@ -35,4 +35,39 @@ describe.skipIf(!hasCredentials)('live ADP smoke test', () => {
       console.log(`event-notification queue: head present (messageId length ${message.messageId.length}) — left undeleted`);
     }
   }, 15000);
+
+  it.skipIf(!ADP_ASSOCIATE_OID)('worker photo read: null or real image bytes (read-only)', async () => {
+    const photo = await liveClient().worker.getPhoto(ADP_ASSOCIATE_OID!);
+    if (photo === null) {
+      console.log('worker photo: none on file');
+    } else {
+      expect(photo.bytes.byteLength).toBeGreaterThan(0);
+      console.log(`worker photo: ${photo.bytes.byteLength} bytes, content-type ${photo.contentType}`);
+    }
+  }, 20000);
+
+  it('worker.photo.upload meta parses (imageSize rule present)', async () => {
+    const meta = await liveClient().worker.eventMeta('worker.photo.upload');
+    expect(meta.raw).toBeTruthy();
+    console.log(
+      `photo upload meta: ${meta.rules.size} rules; imageSize maxLength = ${meta.rules.get('transform:/worker/photo/imageSize')?.maxLength}`,
+    );
+  }, 20000);
+
+  const photoTestAoid = process.env.ADP_PHOTO_TEST_AOID;
+  it.skipIf(!photoTestAoid)('photo upload round-trip (opt-in; re-uploads the worker OWN photo)', async () => {
+    const current = await liveClient().worker.getPhoto(photoTestAoid!);
+    if (current === null) {
+      console.warn('ADP_PHOTO_TEST_AOID worker has no photo — upload round-trip skipped');
+      return;
+    }
+    await liveClient().worker.setPhoto({
+      associateOID: photoTestAoid!,
+      image: current.bytes,
+      contentType: current.contentType,
+    });
+    const after = await liveClient().worker.getPhoto(photoTestAoid!);
+    expect(after).not.toBeNull();
+    expect(after!.bytes.byteLength).toBeGreaterThan(0);
+  }, 30000);
 });

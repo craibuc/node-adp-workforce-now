@@ -8,7 +8,7 @@ export interface TransportTls {
 export interface TransportInit {
   method: string;
   headers: Record<string, string>;
-  body?: string;
+  body?: string | Uint8Array;
 }
 
 /** The only runtime-specific seam: perform one mTLS HTTP request. */

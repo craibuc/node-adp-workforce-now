@@ -161,6 +161,66 @@ export class Client {
     return { status: response.status, headers: response.headers, body };
   }
 
+  /**
+   * @internal Binary-capable request core (worker photo methods). Same lazy
+   * auth, single 401 retry, and typed-error semantics as raw(); differs in
+   * caller-controlled Content-Type and optional bytes-response. Not part of
+   * the public API contract.
+   */
+  async binaryRequest(args: {
+    method: string;
+    path: string;
+    body?: Uint8Array;
+    contentType?: string;
+    bytesResponse?: boolean;
+  }): Promise<{ status: number; headers: Headers; body: unknown; bytes?: Uint8Array }> {
+    const url = `${this.apiBaseUrl}${args.path}`;
+    const endpoint = `${args.method} ${args.path}`;
+
+    const buildHeaders = (token: string): Record<string, string> => {
+      const headers: Record<string, string> = {
+        Accept: this.masked ? 'application/json' : 'application/json;masked=false',
+        Authorization: `Bearer ${token}`,
+      };
+      if (args.body !== undefined && args.contentType !== undefined) {
+        headers['Content-Type'] = args.contentType;
+      }
+      return headers;
+    };
+
+    let token = await this.getToken();
+    let response = await this.transport.request(url, {
+      method: args.method,
+      headers: buildHeaders(token),
+      body: args.body,
+    });
+
+    // Exactly one force-refresh retry on 401.
+    if (response.status === 401) {
+      token = await this.getToken(true);
+      await response.body?.cancel().catch(() => {});
+      response = await this.transport.request(url, {
+        method: args.method,
+        headers: buildHeaders(token),
+        body: args.body,
+      });
+    }
+
+    if (response.status === 204) {
+      return { status: 204, headers: response.headers, body: undefined };
+    }
+    if (!response.ok) {
+      const errorBody = await parseBody(response);
+      raiseForAdp(response.status, errorBody, endpoint);
+    }
+    if (args.bytesResponse) {
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      return { status: response.status, headers: response.headers, body: undefined, bytes };
+    }
+    const body = await parseBody(response);
+    return { status: response.status, headers: response.headers, body };
+  }
+
   async request(method: string, path: string, data?: unknown): Promise<unknown> {
     // 204 -> undefined is preserved via raw()'s undefined body.
     return (await this.raw(method, path, data)).body;

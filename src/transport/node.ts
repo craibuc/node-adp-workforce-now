@@ -46,7 +46,7 @@ export function createNodeTransport(tls: TransportTls): AdpTransport {
           },
         );
         req.on('error', reject);
-        if (init.body !== undefined) req.write(init.body);
+        if (init.body !== undefined) req.write(Buffer.from(init.body as never));
         req.end();
       });
     },

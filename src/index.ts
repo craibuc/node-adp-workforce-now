@@ -8,8 +8,10 @@ export type {
   HireParams,
   RehireParams,
   RequestLeaveAbsenceParams,
+  SetPhotoParams,
   TerminateParams,
   WorkerKey,
+  WorkerPhoto,
   WorkerRecord,
 } from './worker.js';
 export { WorkerSearch } from './search.js';
