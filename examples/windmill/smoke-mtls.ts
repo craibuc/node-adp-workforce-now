@@ -8,7 +8,7 @@
 // The `adp` parameter renders as a resource picker in the Windmill UI;
 // select your ADP credentials resource there.
 
-type AdpCredentials = {
+type CAdpCredentials = {
   client_id: string;
   client_secret: string;
   certificate_file: string; // PEM, raw or base64-encoded
@@ -21,7 +21,7 @@ function pem(input: string): string {
     : Buffer.from(input, 'base64').toString('utf8');
 }
 
-export async function main(adp: AdpCredentials) {
+export async function main(adp: CAdpCredentials) {
   const body = new URLSearchParams({
     grant_type: 'client_credentials',
     client_id: adp.client_id,

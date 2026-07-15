@@ -11,7 +11,7 @@
 
 import { Client } from '@craibuc/adp-workforce-now';
 
-type AdpCredentials = {
+type CAdpCredentials = {
   client_id: string;
   client_secret: string;
   certificate_file: string; // PEM, raw or base64-encoded (auto-detected)
@@ -19,7 +19,7 @@ type AdpCredentials = {
 };
 
 export async function main(
-  adp: AdpCredentials,
+  adp: CAdpCredentials,
   // workAssignments[].itemID for the assignment to terminate.
   workAssignmentID: string,
   // Lands in comment.commentCode.codeValue — a tenant code, not free text.

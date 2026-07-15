@@ -15,7 +15,7 @@
 import { Client } from '@craibuc/adp-workforce-now';
 import type { OnboardParams } from '@craibuc/adp-workforce-now';
 
-type AdpCredentials = {
+type CAdpCredentials = {
   client_id: string;
   client_secret: string;
   certificate_file: string; // PEM, raw or base64-encoded (auto-detected)
@@ -23,7 +23,7 @@ type AdpCredentials = {
 };
 
 export async function main(
-  adp: AdpCredentials,
+  adp: CAdpCredentials,
   // Tenant onboarding template code, e.g. "STANDARD-HIRE".
   onboardingTemplateCode: string,
   // e.g. { givenName: "First", familyName: "Last", ssn: "000-00-0000",

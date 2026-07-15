@@ -5,7 +5,7 @@
 
 import { Client } from '@craibuc/adp-workforce-now';
 
-type AdpCredentials = {
+type CAdpCredentials = {
   client_id: string;
   client_secret: string;
   certificate_file: string; // PEM, raw or base64-encoded (auto-detected)
@@ -13,7 +13,7 @@ type AdpCredentials = {
 };
 
 export async function main(
-  adp: AdpCredentials,
+  adp: CAdpCredentials,
   // Associate OID, e.g. "G0FAKEFAKEFAKE1A".
   associateOID: string,
 ) {

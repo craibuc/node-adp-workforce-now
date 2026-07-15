@@ -35,7 +35,10 @@ Run twice inside one token lifetime: `expiresAt` should not change
 One Windmill script per implemented library method (same Stage-C
 requirement as `smoke-library.ts`: the package must be on npm). Each
 `export async function main(adp, ...)` renders as a Windmill run form, with
-`adp` as a resource picker for your ADP credentials. Only `get-worker.ts`
+`adp` as a resource picker for your ADP credentials. The parameter's type is
+named `CAdpCredentials` because Windmill prefixes custom resource types with
+`c_` (unless created with an admin override), and the TS type name must match
+the resource type for the picker to bind. Only `get-worker.ts`
 wires up a `WindmillTokenStore`; the rest construct `Client` without one and
 carry a one-line comment pointing back to the README's "Token stores"
 section — wire one up before scheduling these for real. ⚠️ marks scripts

@@ -6,7 +6,7 @@
 
 import { Client } from '@craibuc/adp-workforce-now';
 
-type AdpCredentials = {
+type CAdpCredentials = {
   client_id: string;
   client_secret: string;
   certificate_file: string; // PEM, raw or base64-encoded (auto-detected)
@@ -14,7 +14,7 @@ type AdpCredentials = {
 };
 
 export async function main(
-  adp: AdpCredentials,
+  adp: CAdpCredentials,
   // HTTP method, e.g. "GET", "POST", "DELETE".
   method: string,
   // Path relative to the API base (https://api.adp.com), e.g.

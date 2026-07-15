@@ -12,7 +12,7 @@
 import { Client } from '@craibuc/adp-workforce-now';
 import type { EventNotificationMessage } from '@craibuc/adp-workforce-now';
 
-type AdpCredentials = {
+type CAdpCredentials = {
   client_id: string;
   client_secret: string;
   certificate_file: string; // PEM, raw or base64-encoded (auto-detected)
@@ -20,7 +20,7 @@ type AdpCredentials = {
 };
 
 export async function main(
-  adp: AdpCredentials,
+  adp: CAdpCredentials,
   // Safety cap on messages drained in a single run.
   maxMessages = 50,
 ) {

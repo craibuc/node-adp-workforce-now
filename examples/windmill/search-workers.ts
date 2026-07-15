@@ -14,7 +14,7 @@
 
 import { Client } from '@craibuc/adp-workforce-now';
 
-type AdpCredentials = {
+type CAdpCredentials = {
   client_id: string;
   client_secret: string;
   certificate_file: string; // PEM, raw or base64-encoded (auto-detected)
@@ -22,7 +22,7 @@ type AdpCredentials = {
 };
 
 export async function main(
-  adp: AdpCredentials,
+  adp: CAdpCredentials,
   // Filter by legal family name, e.g. "Duck".
   familyName?: string,
   // Filter by legal given name, e.g. "Donald".

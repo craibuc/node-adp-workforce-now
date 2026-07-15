@@ -18,7 +18,7 @@
 import { Client } from '@craibuc/adp-workforce-now';
 import { WindmillTokenStore } from '@craibuc/adp-workforce-now/windmill';
 
-type AdpCredentials = {
+type CAdpCredentials = {
   client_id: string;
   client_secret: string;
   certificate_file: string; // PEM, raw or base64-encoded (auto-detected)
@@ -26,7 +26,7 @@ type AdpCredentials = {
 };
 
 export async function main(
-  adp: AdpCredentials,
+  adp: CAdpCredentials,
   // Windmill variable path for the shared token cache, e.g. "u/you/adp_token_cache".
   // Use a throwaway path on the first run so you can inspect what gets created.
   tokenCachePath: string,
