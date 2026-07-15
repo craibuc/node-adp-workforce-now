@@ -29,3 +29,33 @@ fine). Proves the published artifact + `WindmillTokenStore` against the real
 check manually in the UI — the variable is created with the **secret** flag.
 Run twice inside one token lifetime: `expiresAt` should not change
 (cache reuse instead of re-authentication).
+
+## Examples by method
+
+One Windmill script per implemented library method (same Stage-C
+requirement as `smoke-library.ts`: the package must be on npm). Each
+`export async function main(adp, ...)` renders as a Windmill run form, with
+`adp` as a resource picker for your ADP credentials. Only `get-worker.ts`
+wires up a `WindmillTokenStore`; the rest construct `Client` without one and
+carry a one-line comment pointing back to the README's "Token stores"
+section — wire one up before scheduling these for real. ⚠️ marks scripts
+that write to your ADP tenant; run those against a test worker/applicant
+only.
+
+| File | Method | What it does |
+|---|---|---|
+| `get-worker.ts` | `Worker.get` | Fetch a worker by associate OID or by SSN; shows the shared `WindmillTokenStore` |
+| `search-workers.ts` | `Worker.search` → `page`/`pages` | A single filtered page, or a while-loop walk across every page via the `WorkerPage` protocol |
+| `get-worker-photo.ts` | `Worker.getPhoto` | Content type + byte length only (bytes withheld to keep the step result small) |
+| `get-event-meta.ts` | `Worker.eventMeta` | Lists an event's client-side validation rule paths (required/readOnly/hidden/codeList/pattern/length) |
+| `drain-event-notifications.ts` | `EventNotifications.next` / `.delete` | Drains the queue up to `maxMessages` (default 50): `next()` → null means empty, otherwise collect + `delete(messageId)` to advance |
+| `raw-request.ts` | `Client.raw` | Escape hatch for any endpoint not yet wrapped by the library |
+| `hire-worker.ts` | `Worker.hire` | ⚠️ Hires a new worker |
+| `rehire-worker.ts` | `Worker.rehire` | ⚠️ Rehires a terminated worker |
+| `terminate-worker.ts` | `Worker.terminate` | ⚠️ Terminates a work assignment |
+| `change-pay-rate.ts` | `Worker.changeBaseRemuneration` | ⚠️ Changes a worker's hourly/daily/salary rate |
+| `change-legal-name.ts` | `Worker.changeLegalName` | ⚠️ Changes a worker's legal name |
+| `change-custom-field.ts` | `Worker.changeCustomFieldString` | ⚠️ Changes a string-typed custom field |
+| `request-leave-absence.ts` | `Worker.requestLeaveAbsence` | ⚠️ Requests a leave of absence |
+| `onboard-worker.ts` | `Worker.onboard` | ⚠️ Starts an applicant onboarding (grouped personal/worker/payroll/tax params) |
+| `set-worker-photo.ts` | `Worker.setPhoto` | ⚠️ Uploads a worker photo from a base64 string, with a meta-driven size preflight |
