@@ -106,4 +106,20 @@ describe('worker.terminate', () => {
     expect(assignment.rehireEligibleIndicator).toBe(false);
     expect(assignment.severanceEligibleIndicator).toBe(false);
   });
+
+  it('honors an explicit lastWorkedDate distinct from terminationDate', async () => {
+    const { client, calls } = makeClient();
+
+    await client.worker.terminate({
+      workAssignmentID: 'WA1',
+      commentCode: 'GROWTH',
+      terminationDate: '2026-08-15',
+      lastWorkedDate: '2026-08-08',
+      reasonCode: 'T',
+    });
+
+    const assignment = JSON.parse(calls[1].body!).events[0].data.transform.worker.workAssignment;
+    expect(assignment.terminationDate).toBe('2026-08-15');
+    expect(assignment.lastWorkedDate).toBe('2026-08-08');
+  });
 });

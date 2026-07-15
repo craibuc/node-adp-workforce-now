@@ -47,8 +47,10 @@ export interface TerminateParams {
   workAssignmentID: string;
   /** Lands in comment.commentCode.codeValue — a code, not free text. */
   commentCode: string;
-  /** YYYY-MM-DD; also used as lastWorkedDate. */
+  /** YYYY-MM-DD. */
   terminationDate: string;
+  /** YYYY-MM-DD. Defaults to terminationDate. */
+  lastWorkedDate?: string;
   reasonCode: string;
   /** Default true. */
   rehireEligibleIndicator?: boolean;
@@ -529,7 +531,7 @@ export class Worker {
               worker: {
                 workAssignment: {
                   terminationDate: params.terminationDate,
-                  lastWorkedDate: params.terminationDate,
+                  lastWorkedDate: params.lastWorkedDate ?? params.terminationDate,
                   assignmentStatus: { reasonCode: { codeValue: params.reasonCode } },
                   rehireEligibleIndicator,
                   severanceEligibleIndicator,

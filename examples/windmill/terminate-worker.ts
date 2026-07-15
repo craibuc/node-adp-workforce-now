@@ -27,10 +27,12 @@ export async function main(
   workAssignmentID: string,
   // Lands in comment.commentCode.codeValue — a tenant code, not free text.
   commentCode: string,
-  // YYYY-MM-DD; also used as lastWorkedDate.
+  // YYYY-MM-DD.
   terminationDate: string,
   // Tenant termination-reason code.
   reasonCode: string,
+  // YYYY-MM-DD; defaults to terminationDate if omitted.
+  lastWorkedDate?: string,
   // Default true if omitted.
   rehireEligibleIndicator?: boolean,
   // Default true if omitted.
@@ -45,6 +47,7 @@ export async function main(
     workAssignmentID,
     commentCode,
     terminationDate,
+    lastWorkedDate,
     reasonCode,
     rehireEligibleIndicator,
     severanceEligibleIndicator,
