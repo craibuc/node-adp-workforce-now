@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { Client } from '../../src/client.js';
 import { AdpError } from '../../src/errors.js';
-import { flattenEnvelope } from '../../src/meta.js';
+import { flattenEnvelope, validateEnvelope } from '../../src/meta.js';
 import type { SupportedEvent } from '../../src/meta.js';
 
 const { ADP_CLIENT_ID, ADP_CLIENT_SECRET, ADP_CERTIFICATE, ADP_PRIVATE_KEY } = process.env;
@@ -262,6 +262,34 @@ describe.skipIf(!hasCredentials)('live event metas', () => {
     expect(meta.raw).toBeTruthy();
     expect(meta.rules.has('transform:/queryParameter')).toBe(true);
   }, 20000);
+
+  it('applicant.onboard meta parses with its 5 required rules addressing the envelope root', async () => {
+    const meta = await fetchMetaWithRetry('applicant.onboard');
+    const requiredPaths = [...meta.rules.entries()]
+      .filter(([, rule]) => rule.optional === false)
+      .map(([path]) => path);
+    for (const expected of [
+      'transform:/applicantOnboarding/onboardingTemplateCode',
+      'transform:/applicantOnboarding/applicantPersonalProfile/birthName/givenName',
+      'transform:/applicantOnboarding/applicantPersonalProfile/birthName/familyName',
+      'transform:/applicantOnboarding/applicantWorkerProfile/hireDate',
+      'transform:/applicantOnboarding/applicantPayrollProfile/payrollGroupCode',
+    ]) {
+      expect(requiredPaths).toContain(expected);
+    }
+
+    // A representative generated envelope covers every required path
+    // (container rules satisfied by leaves beneath them).
+    const envelope = {
+      applicantOnboarding: {
+        onboardingTemplateCode: { code: 'TPL' },
+        applicantPersonalProfile: { birthName: { givenName: 'First', familyName: 'Last' } },
+        applicantWorkerProfile: { hireDate: '2026-08-01' },
+        applicantPayrollProfile: { payrollGroupCode: 'ABC' },
+      },
+    };
+    expect(validateEnvelope(envelope, meta).filter((i) => i.code === 'required')).toEqual([]);
+  }, 60000);
 
   it('get({ ssn }) miss-probe returns undefined (fake SSN, no PII)', async () => {
     expect(await liveClient().worker.get({ ssn: '000-00-0000' })).toBeUndefined();

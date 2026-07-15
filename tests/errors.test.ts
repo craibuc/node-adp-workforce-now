@@ -107,4 +107,16 @@ describe('raiseForAdp', () => {
     const e = capture(() => raiseForAdp(400, undefined, 'POST /x'));
     expect(e.name).toBe('BadRequestError');
   });
+
+  it('maps the hcm/v2 _confirmMessage shape (applicant.onboard family)', () => {
+    const json = {
+      _confirmMessage: {
+        messages: [{ messageCode: 'ONB_001', messageText: 'Onboarding template is invalid' }],
+      },
+    };
+    const e = capture(() => raiseForAdp(400, json, 'POST /hcm/v2/applicant.onboard'));
+    expect(e).toBeInstanceOf(BadRequestError);
+    expect(e.adpMessage).toBe('Onboarding template is invalid');
+    expect(e.adpCode).toBe('ONB_001');
+  });
 });

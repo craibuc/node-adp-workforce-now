@@ -6,6 +6,7 @@ export type {
   ChangeCustomFieldStringParams,
   ChangeLegalNameParams,
   HireParams,
+  OnboardParams,
   RehireParams,
   RequestLeaveAbsenceParams,
   SetPhotoParams,

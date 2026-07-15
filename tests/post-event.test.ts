@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { Client } from '../src/client.js';
 import { BadRequestError } from '../src/errors.js';
-import { EventValidationError } from '../src/meta.js';
+import { EventValidationError, parseEventMeta, validateEnvelope } from '../src/meta.js';
 import { TOKEN_RESPONSE, makeFakeTransport } from './helpers/fake-transport.js';
 import syntheticRehireMeta from './fixtures/meta/synthetic.worker.rehire.json';
 import rehireAlreadyActive from './fixtures/worker.rehire/400.already-active.json';
@@ -150,5 +150,84 @@ describe('postEvent pipeline', () => {
     expect(calls).toHaveLength(4); // token, meta(500), POST, POST — no second meta GET
     expect(calls[2].method).toBe('POST');
     expect(calls[3].method).toBe('POST');
+  });
+});
+
+const ONBOARD_META = {
+  status: 200,
+  json: {
+    meta: {
+      '/meta/applicantOnboarding/onboardingTemplateCode': { optional: false },
+      '/meta/applicantOnboarding/applicantWorkerProfile/hireDate': { optional: false },
+    },
+  },
+};
+
+describe('event route registry in the pipeline', () => {
+  it('routes applicant.onboard meta and POST to the hcm/v2 family', async () => {
+    const { client, calls } = makeClient([
+      TOKEN_RESPONSE,
+      ONBOARD_META,
+      { status: 200, json: { ok: 1 } },
+    ]);
+
+    await client.worker.postEvent('applicant.onboard', {
+      applicantOnboarding: {
+        onboardingTemplateCode: { code: 'T1' },
+        applicantWorkerProfile: { hireDate: '2026-08-01' },
+      },
+    });
+
+    expect(calls[1].url).toBe('https://api.adp.com/hcm/v2/applicant.onboard/meta');
+    expect(calls[2].url).toBe('https://api.adp.com/hcm/v2/applicant.onboard');
+    expect(calls[2].method).toBe('POST');
+  });
+
+  it('required issues BLOCK applicant.onboard (no POST issued)', async () => {
+    const { client, calls } = makeClient([
+      TOKEN_RESPONSE,
+      ONBOARD_META,
+      // nothing else queued: a POST would throw "queue empty"
+    ]);
+
+    const error = await client.worker
+      .postEvent('applicant.onboard', {
+        applicantOnboarding: { onboardingTemplateCode: { code: 'T1' }, applicantWorkerProfile: {} },
+      })
+      .catch((e) => e);
+
+    expect(error).toBeInstanceOf(EventValidationError);
+    expect(error.issues.some((i: { code: string }) => i.code === 'required')).toBe(true);
+    expect(calls).toHaveLength(2); // token + meta only
+  });
+
+  it('required issues do NOT block default-family events (codeList-only)', async () => {
+    const requiredOnlyMeta = {
+      status: 200,
+      json: { meta: { '/data/transforms': [{ '/effectiveDateTime': { optional: false } }] } },
+    };
+    const { client, calls } = makeClient([
+      TOKEN_RESPONSE,
+      requiredOnlyMeta,
+      { status: 200, json: { events: [] } },
+    ]);
+
+    // envelope MISSING the required effectiveDateTime — still posts
+    // but now with a scalar leaf to make the scope in-use and generate a real required issue
+    const parsed = parseEventMeta('worker.rehire', requiredOnlyMeta.json, 0);
+    expect(
+      validateEnvelope(
+        { events: [{ data: { transform: { worker: { associateOID: 'AAA' } } } }] },
+        parsed,
+      ).some((i) => i.code === 'required'),
+    ).toBe(true); // premise: a real required issue exists…
+    // …and the default-family pipeline still posts (below)
+
+    await client.worker.postEvent('worker.rehire', {
+      events: [{ data: { transform: { worker: { associateOID: 'AAA' } } } }],
+    });
+
+    expect(calls).toHaveLength(3);
+    expect(calls[2].url).toBe('https://api.adp.com/events/hr/v1/worker.rehire');
   });
 });

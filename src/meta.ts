@@ -8,7 +8,8 @@ export type SupportedEvent =
   | 'worker.person.custom-field.string.change'
   | 'worker.leave.absence.request'
   | 'worker.read'
-  | 'worker.photo.upload';
+  | 'worker.photo.upload'
+  | 'applicant.onboard';
 
 export interface FieldRule {
   optional?: boolean;
@@ -32,6 +33,35 @@ export interface ValidationIssue {
   path: string;
   code: 'required' | 'readOnly' | 'hidden' | 'codeList' | 'pattern' | 'length';
   message: string;
+}
+
+/** Per-event routing: path family + which issue codes block a POST. */
+export interface EventRoute {
+  postPath: string;
+  metaPath: string;
+  blocking: ReadonlyArray<ValidationIssue['code']>;
+}
+
+const EVENT_ROUTES: Record<string, EventRoute> = {
+  // hcm/v2 family. `required` blocking is evidence-justified: the live meta
+  // has exactly 5 clean required rules, all present in the recorded working
+  // payload — the overdeclare risk that forced codeList-only elsewhere does
+  // not apply (see the v3.3 spec).
+  'applicant.onboard': {
+    postPath: '/hcm/v2/applicant.onboard',
+    metaPath: '/hcm/v2/applicant.onboard/meta',
+    blocking: ['codeList', 'required'],
+  },
+};
+
+export function eventRoute(event: string): EventRoute {
+  return (
+    EVENT_ROUTES[event] ?? {
+      postPath: `/events/hr/v1/${encodeURIComponent(event)}`,
+      metaPath: `/events/hr/v1/${encodeURIComponent(event)}/meta`,
+      blocking: ['codeList'],
+    }
+  );
 }
 
 export class EventValidationError extends Error {
@@ -71,7 +101,12 @@ function scopeOf(segments: string[]): { scope: 'transform' | 'eventContext'; rel
       return { scope: 'eventContext', rel: segments.slice(i + 1) };
     }
   }
-  return { scope: 'transform', rel: segments };
+  // No family scope segment found: drop structural leading `meta` segments
+  // (raw metas nest rules under a top-level meta key; the hcm/v2 family
+  // additionally prefixes rule paths with /meta/).
+  let start = 0;
+  while (segments[start] === 'meta') start++;
+  return { scope: 'transform', rel: segments.slice(start) };
 }
 
 function ruleFrom(node: Record<string, unknown>): FieldRule | undefined {
@@ -153,6 +188,10 @@ export function flattenEnvelope(envelope: unknown): Map<string, unknown[]> {
       walk(data.transform, 'transform', []);
       walk(data.eventContext, 'eventContext', []);
     }
+  } else if (isRecord(envelope)) {
+    // Wrapperless family (e.g. applicant.onboard): the whole body is the
+    // mutation payload — flatten from the root under the transform scope.
+    walk(envelope, 'transform', []);
   }
   return values;
 }

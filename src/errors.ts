@@ -66,6 +66,17 @@ function extract(json: unknown): Extracted {
     return { adpMessage: exception.message };
   }
 
+  // Shape 4 (hcm/v2 family, e.g. applicant.onboard): _confirmMessage.messages[0]
+  const hcmMessage = body._confirmMessage?.messages?.[0];
+  if (typeof hcmMessage?.messageText === 'string') {
+    const code = typeof hcmMessage.messageCode === 'string'
+      ? hcmMessage.messageCode
+      : typeof hcmMessage.code === 'string'
+        ? hcmMessage.code
+        : undefined;
+    return { adpMessage: hcmMessage.messageText, adpCode: code };
+  }
+
   // OAuth token endpoint: { error, error_description }
   if (typeof body.error_description === 'string') {
     return {

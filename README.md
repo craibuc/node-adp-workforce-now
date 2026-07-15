@@ -172,6 +172,33 @@ Crossing Windmill flow-step boundaries: photos are binary, flow results are
 JSON — convert with `Buffer.from(photo.bytes).toString('base64')` on the way
 out, and pass the base64 string straight back into `setPhoto`.
 
+### Worker onboarding
+
+`onboard()` starts an ADP onboarding (Applicant Onboarding v2) for a new
+hire. Unlike other events, the body is validated against your tenant's
+metadata for **required fields as well as code lists** before anything is
+posted — a missing required field fails immediately with `EventValidationError`,
+naming the path (when the tenant meta is unavailable, including during its
+5-minute negative-cache window, the call falls back to posting unvalidated
+and ADP then enforces server-side).
+
+```typescript
+await client.worker.onboard({
+  onboardingTemplateCode: 'YOUR-TEMPLATE',
+  personal: {
+    givenName: 'First', familyName: 'Last',
+    ssn: '111-22-3333',
+    address: { lineOne: '1 Main St', cityName: 'Town', stateCode: 'MN', postalCode: '55555' },
+    mobilePhone: '(612) 555-9876', email: 'first.last@example.com',
+  },
+  worker: { hireDate: '2026-08-01', jobCode: 'J01', homeDepartmentCode: '000001' },
+  payroll: { payrollGroupCode: 'ABC', payCycleCode: 'B' },
+  tax: { federal: { taxFilingStatusCode: 'S', dependents: 2 } },
+  // tenant-specific extras: payroll.customCodeFields and a deep-merged
+  // `overrides` object (applied before validation)
+});
+```
+
 ### Token stores
 
 Tokens are cached via a pluggable `TokenStore` (default: in-memory). The
@@ -209,10 +236,11 @@ extraction still apply).
 | ✅ | any other endpoint | `Client.get`, `Client.post` | Escape hatch for unwrapped endpoints — auth, mTLS, and typed-error extraction still apply |
 | ✅ | any endpoint (with headers) | `Client.raw` | Escape hatch returning { status, headers, body } — same auth/retry/error semantics |
 | ✅ | `POST /events/hr/v1/worker.work-assignment.base-remuneration.change` | `Worker.changeBaseRemuneration` | Change a worker's pay rate (hourly/daily/salary) as of an effective date |
-| ✅ | `GET  /events/hr/v1/{event}/meta` | `Worker.eventMeta` (+ `Worker.postEvent` pipeline) | Event metadata for any worker.* event, cached (default 12 h); powers client-side envelope validation |
+| ✅ | `GET  /events/hr/v1/{event}/meta` · `GET /hcm/v2/applicant.onboard/meta` | `Worker.eventMeta` (+ `Worker.postEvent` pipeline) | Event metadata for any worker.* event plus applicant.onboard, cached (default 12 h); powers client-side envelope validation |
 | ✅ | `POST /events/hr/v1/worker.legal-name.change` | `Worker.changeLegalName` | Change a worker's legal name as of an effective date |
 | ✅ | `POST /events/hr/v1/worker.person.custom-field.string.change` | `Worker.changeCustomFieldString` | Change a string-typed custom field on a worker's record |
 | ✅ | `POST /events/hr/v1/worker.leave.absence.request` | `Worker.requestLeaveAbsence` | Request a leave of absence (leave-type code, start/expected-return dates) |
+| ✅ | `POST /hcm/v2/applicant.onboard` | `Worker.onboard` | Start an onboarding for a new hire (grouped personal/worker/payroll/tax params; required-field validation blocks pre-POST) |
 | ✅ | `GET /core/v1/event-notification-messages` | `EventNotifications.next` | Head of the event-notification queue ({ messageId, payload }, null when empty); same message until deleted |
 | ✅ | `DELETE /core/v1/event-notification-messages/{id}` | `EventNotifications.delete` | Acknowledge a message (echoes the deleted record); advances the queue |
 | ✅ | `GET /hr/v2/workers/{aoid}/worker-images/photo` | `Worker.getPhoto` | Worker photo as bytes + content type; null when none on file |
@@ -223,7 +251,7 @@ extraction still apply).
 | ⬜ | `POST /events/hr/v1/worker.pay-distribution.change` | roadmap | Change a worker's pay distribution (direct deposit accounts) |
 | ⬜ | legacy worker-profile v1 `PUT` endpoints | not planned | Superseded by the event-based writes above |
 
-✅ implemented (2.0.0–3.2.0) · 🔜 planned (version noted per row) · ⬜ roadmap / no current plans — PRs welcome
+✅ implemented (2.0.0–3.3.0) · 🔜 planned (version noted per row) · ⬜ roadmap / no current plans — PRs welcome
 
 ## Development
 

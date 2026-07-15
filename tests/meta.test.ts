@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
   EventValidationError,
+  eventRoute,
   parseEventMeta,
   validateEnvelope,
 } from '../src/meta.js';
@@ -192,5 +193,52 @@ describe('required-rule semantics (Fix 1)', () => {
     };
     const envelope = { events: [{ data: { transform: { note: '' } } }] };
     expect(validateEnvelope(envelope, requiredOnlyMeta)).toEqual([]);
+  });
+});
+
+describe('eventRoute registry', () => {
+  it('routes applicant.onboard to the hcm/v2 family with required blocking', () => {
+    const route = eventRoute('applicant.onboard');
+    expect(route.postPath).toBe('/hcm/v2/applicant.onboard');
+    expect(route.metaPath).toBe('/hcm/v2/applicant.onboard/meta');
+    expect(route.blocking).toEqual(['codeList', 'required']);
+  });
+
+  it('defaults every other event to the events/hr/v1 family with codeList-only blocking', () => {
+    const route = eventRoute('worker.rehire');
+    expect(route.postPath).toBe('/events/hr/v1/worker.rehire');
+    expect(route.metaPath).toBe('/events/hr/v1/worker.rehire/meta');
+    expect(route.blocking).toEqual(['codeList']);
+  });
+});
+
+describe('onboard-family meta parsing (leading meta segment)', () => {
+  const raw = {
+    meta: {
+      '/meta/applicantOnboarding/onboardingTemplateCode': { optional: false },
+      '/meta/applicantOnboarding/applicantWorkerProfile/hireDate': { optional: false },
+    },
+  };
+  const meta = parseEventMeta('applicant.onboard', raw, 0);
+
+  it('drops leading meta segments so rules address the envelope root', () => {
+    expect(meta.rules.get('transform:/applicantOnboarding/onboardingTemplateCode')).toEqual({ optional: false });
+    expect(meta.rules.get('transform:/applicantOnboarding/applicantWorkerProfile/hireDate')).toEqual({ optional: false });
+  });
+
+  it('validates a wrapperless envelope from the root (transform scope)', () => {
+    const ok = {
+      applicantOnboarding: {
+        onboardingTemplateCode: { code: 'T1' },
+        applicantWorkerProfile: { hireDate: '2026-08-01' },
+      },
+    };
+    expect(validateEnvelope(ok, meta)).toEqual([]);
+
+    const missingHireDate = {
+      applicantOnboarding: { onboardingTemplateCode: { code: 'T1' }, applicantWorkerProfile: {} },
+    };
+    const issues = validateEnvelope(missingHireDate, meta);
+    expect(issues.some((i) => i.code === 'required' && i.path.endsWith('/hireDate'))).toBe(true);
   });
 });

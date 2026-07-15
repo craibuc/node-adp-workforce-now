@@ -1,4 +1,4 @@
-import { EventValidationError, parseEventMeta, validateEnvelope } from './meta.js';
+import { EventValidationError, eventRoute, parseEventMeta, validateEnvelope } from './meta.js';
 import type { EventMeta, SupportedEvent } from './meta.js';
 import type { Client } from './client.js';
 import { BadRequestError, NotFoundError } from './errors.js';
@@ -102,6 +102,94 @@ export interface RequestLeaveAbsenceParams {
   leaveTypeCode: string;
 }
 
+export interface OnboardParams {
+  /** Tenant onboarding template. */
+  onboardingTemplateCode: string;
+  personal: {
+    givenName: string;
+    familyName: string;
+    middleName?: string;
+    /** YYYY-MM-DD */
+    birthDate?: string;
+    /** Also mirrored into genderReportingDetails. */
+    genderCode?: string;
+    raceCode?: string;
+    raceIdentificationMethodCode?: string;
+    ethnicityCode?: string;
+    languageCode?: string;
+    ssn?: string;
+    address?: {
+      lineOne: string;
+      lineTwo?: string;
+      cityName: string;
+      stateCode: string;
+      postalCode: string;
+      /** Default "US". */
+      countryCode?: string;
+    };
+    /**
+     * 10-digit US phone number. A leading `+1` or `1` country-code prefix is
+     * accepted and stripped; otherwise formatting is free-form (spaces,
+     * dashes, parens — digits are extracted and split into 3-digit area +
+     * remainder). Throws if what remains after stripping isn't exactly 10
+     * digits.
+     */
+    homePhone?: string;
+    /** Same format as `homePhone`. */
+    mobilePhone?: string;
+    email?: string;
+  };
+  worker: {
+    /** YYYY-MM-DD */
+    hireDate: string;
+    hireReasonCode?: string;
+    jobCode?: string;
+    workerTypeCode?: string;
+    /** homeOrganizationalUnits BusinessUnit entry. */
+    businessUnitCode?: string;
+    /** homeOrganizationalUnits HomeDepartment entry. */
+    homeDepartmentCode?: string;
+    reportsToPositionID?: string;
+    eeoClassificationCode?: string;
+    eeocClassificationCode?: string;
+    /** Default false. */
+    managementPositionIndicator?: boolean;
+  };
+  payroll: {
+    /** Plain string on the wire (recorded). */
+    payrollGroupCode: string;
+    payCycleCode?: string;
+    payrollScheduleGroupCode?: string;
+    /** Tenant custom code fields (e.g. a DataControl entry) — passed through verbatim. */
+    customCodeFields?: Array<{ nameCode: string; code: string }>;
+  };
+  tax?: {
+    federal?: {
+      taxFilingStatusCode?: string;
+      /** allowanceTypeCode Deductions. */
+      deductions?: number;
+      /** allowanceTypeCode Dependents. */
+      dependents?: number;
+      additionalTaxAmount?: number;
+      /** Default false. */
+      multipleJobIndicator?: boolean;
+    };
+    state?: {
+      /** workedInJurisdiction instruction. */
+      workedInStateCode?: string;
+      /** Second instruction, livedInJurisdiction. */
+      livedInStateCode?: string;
+      taxFilingStatusCode?: string;
+      taxAllowanceQuantity?: number;
+      additionalTaxAmount?: number;
+    };
+  };
+  /** Deep-merged over the generated applicantOnboarding object last — the
+   *  tenant escape hatch for anything not modeled above. Applied BEFORE
+   *  validation (the validated body is the final body). */
+  overrides?: Record<string, unknown>;
+}
+
 export interface WorkerPhoto {
   /** From the response Content-Type header. */
   contentType: string;
@@ -116,6 +204,48 @@ export interface SetPhotoParams {
   contentType?: string;
   /** datafile part filename. Default "photo.jpg". */
   filename?: string;
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** Objects merge recursively; arrays and scalars replace. Patch wins. */
+function deepMerge(
+  base: Record<string, unknown>,
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(patch)) {
+    const existing = out[key];
+    out[key] = isPlainRecord(value) && isPlainRecord(existing) ? deepMerge(existing, value) : value;
+  }
+  return out;
+}
+
+/**
+ * Recorded phone convention: digits only, first 3 = area, rest = dial.
+ * Accepts (and strips) a leading US country code — either a bare '1' or a
+ * '+1' — before re-checking length; whatever remains must be exactly 10
+ * digits or this throws (rather than silently mis-splitting, e.g.
+ * '+1 (612) 555-9876' -> digits '16125559876' -> a naive 3/rest split would
+ * wrongly yield areaDialing '161').
+ */
+function phoneEntry(nameCodeValue: string, raw: string): Record<string, unknown> {
+  let digits = raw.replace(/\D/g, '');
+  if (digits.length === 11 && digits.startsWith('1')) {
+    digits = digits.slice(1);
+  }
+  if (digits.length !== 10) {
+    // Digit count only — never echo the raw value, it's contact-info PII.
+    throw new Error(`${nameCodeValue}: expected a 10-digit US phone number, got ${digits.length} digits`);
+  }
+  return {
+    nameCode: { codeValue: nameCodeValue },
+    countryDialing: '1',
+    areaDialing: digits.slice(0, 3),
+    dialNumber: digits.slice(3),
+  };
 }
 
 /** Negative-cache window for meta-fetch failures (Fix 3): avoids re-hitting a
@@ -138,7 +268,7 @@ export class Worker {
     if (!options.forceRefresh && cached && Date.now() - cached.fetchedAt < this.client.metaCacheTtlMs) {
       return cached;
     }
-    const raw = await this.client.get(`/events/hr/v1/${encodeURIComponent(event)}/meta`);
+    const raw = await this.client.get(eventRoute(event).metaPath);
     const meta = parseEventMeta(event, raw, Date.now());
     this.metaCache.set(event, meta);
     return meta;
@@ -148,20 +278,21 @@ export class Worker {
    * Validated event pipeline — public escape hatch for any worker.* event.
    * Validates against cached meta (when client.validateEvents), POSTs, and on
    * an ADP 400 refreshes the meta once and re-validates to upgrade
-   * stale-cache failures into readable errors. Never re-POSTs. Only
-   * `codeList` violations block the POST (throw `EventValidationError`) —
-   * live verification against real tenant metas showed ADP overdeclares
-   * `required`/`readOnly`/`hidden`/`pattern`/`length` constraints on fields
-   * that battle-tested envelopes have always sent successfully, while
-   * code-list checks (the original motivation: tenant reason-code
-   * validation) produced no false positives. Those other constraint types
-   * remain computable via `eventMeta` + `validateEnvelope` for diagnostics —
-   * they are advisory only and never block. Envelopes are validated as
-   * single-event payloads: multiple entries under `events[]` are flattened
-   * together rather than validated independently per entry.
+   * stale-cache failures into readable errors. Never re-POSTs. Blocking issue
+   * codes are per-event (`eventRoute`): `codeList` for the events family;
+   * `codeList` + `required` for `applicant.onboard`. Live verification against
+   * real tenant metas showed ADP overdeclares `required`/`readOnly`/`hidden`/
+   * `pattern`/`length` constraints on fields that battle-tested envelopes have
+   * always sent successfully, while code-list checks (the original motivation:
+   * tenant reason-code validation) produced no false positives. Those other
+   * constraint types remain computable via `eventMeta` + `validateEnvelope` for
+   * diagnostics — they are advisory only and never block. Envelopes are
+   * validated as single-event payloads: multiple entries under `events[]` are
+   * flattened together rather than validated independently per entry.
    */
   async postEvent(event: SupportedEvent | (string & {}), envelope: unknown): Promise<unknown> {
-    const path = `/events/hr/v1/${encodeURIComponent(event)}`;
+    const route = eventRoute(event);
+    const path = route.postPath;
 
     if (!this.client.validateEvents) {
       return this.client.post(path, envelope);
@@ -189,7 +320,7 @@ export class Worker {
     }
 
     const issues = validateEnvelope(envelope, meta);
-    const blockingIssues = issues.filter((i) => i.code === 'codeList');
+    const blockingIssues = issues.filter((i) => route.blocking.includes(i.code));
     if (blockingIssues.length > 0) throw new EventValidationError(event, blockingIssues);
 
     try {
@@ -199,7 +330,7 @@ export class Worker {
         let freshBlockingIssues;
         try {
           const fresh = await this.eventMeta(event, { forceRefresh: true });
-          freshBlockingIssues = validateEnvelope(envelope, fresh).filter((i) => i.code === 'codeList');
+          freshBlockingIssues = validateEnvelope(envelope, fresh).filter((i) => route.blocking.includes(i.code));
         } catch {
           // Self-heal is best-effort: a failed meta refresh must not mask the original 400.
           throw error;
@@ -528,5 +659,180 @@ export class Worker {
       ],
     };
     return this.postEvent('worker.leave.absence.request', data);
+  }
+
+  /**
+   * Onboard an applicant (Applicant Onboarding v2, POST /hcm/v2/applicant.onboard).
+   * The body is validated against the tenant meta BEFORE posting — for this
+   * event both `required` and `codeList` issues block (see eventRoute).
+   * Envelope quirks follow the recorded production request verbatim: this
+   * family uses {code} objects (communication nameCodes use codeValue),
+   * governmentIDs use `id`, addresses use subdivisionCode, and
+   * payrollGroupCode is a plain string.
+   */
+  async onboard(params: OnboardParams): Promise<unknown> {
+    const { personal, worker, payroll, tax } = params;
+
+    const communication: Record<string, unknown> = {};
+    if (personal.homePhone) communication.landlines = [phoneEntry('Home Phone', personal.homePhone)];
+    if (personal.mobilePhone) communication.mobiles = [phoneEntry('Personal Cell', personal.mobilePhone)];
+    if (personal.email) {
+      communication.emails = [
+        { nameCode: { codeValue: 'Personal E-mail' }, emailUri: personal.email, notificationIndicator: true },
+      ];
+    }
+
+    const personalProfile: Record<string, unknown> = {
+      birthName: {
+        givenName: personal.givenName,
+        ...(personal.middleName !== undefined ? { middleName: personal.middleName } : {}),
+        familyName: personal.familyName,
+      },
+      ...(personal.birthDate !== undefined ? { birthDate: personal.birthDate } : {}),
+      ...(personal.genderCode !== undefined
+        ? {
+            genderCode: { code: personal.genderCode },
+            genderReportingDetails: { reportedGenderCode: { code: personal.genderCode } },
+          }
+        : {}),
+      ...(personal.raceCode !== undefined
+        ? {
+            raceCode: {
+              ...(personal.raceIdentificationMethodCode !== undefined
+                ? { identificationMethodCode: { code: personal.raceIdentificationMethodCode } }
+                : {}),
+              code: personal.raceCode,
+            },
+          }
+        : {}),
+      ...(personal.ethnicityCode !== undefined ? { ethnicityCode: { code: personal.ethnicityCode } } : {}),
+      ...(personal.languageCode !== undefined ? { languageCode: { code: personal.languageCode } } : {}),
+      ...(personal.address !== undefined
+        ? {
+            legalAddress: {
+              lineOne: personal.address.lineOne,
+              ...(personal.address.lineTwo !== undefined ? { lineTwo: personal.address.lineTwo } : {}),
+              cityName: personal.address.cityName,
+              subdivisionCode: { code: personal.address.stateCode },
+              countryCode: personal.address.countryCode ?? 'US',
+              postalCode: personal.address.postalCode,
+            },
+          }
+        : {}),
+      ...(Object.keys(communication).length > 0 ? { communication } : {}),
+      ...(personal.ssn !== undefined
+        ? { governmentIDs: [{ id: personal.ssn, nameCode: { code: 'SSN' } }] }
+        : {}),
+    };
+
+    const workerProfile: Record<string, unknown> = {
+      hireDate: worker.hireDate,
+      ...(worker.hireReasonCode !== undefined ? { hireReasonCode: { code: worker.hireReasonCode } } : {}),
+      ...(worker.businessUnitCode !== undefined || worker.homeDepartmentCode !== undefined
+        ? {
+            homeOrganizationalUnits: [
+              ...(worker.businessUnitCode !== undefined
+                ? [{ unitTypeCode: { code: 'BusinessUnit' }, nameCode: { code: worker.businessUnitCode } }]
+                : []),
+              ...(worker.homeDepartmentCode !== undefined
+                ? [{ unitTypeCode: { code: 'HomeDepartment' }, nameCode: { code: worker.homeDepartmentCode } }]
+                : []),
+            ],
+          }
+        : {}),
+      ...(worker.jobCode !== undefined ||
+      worker.eeoClassificationCode !== undefined ||
+      worker.eeocClassificationCode !== undefined
+        ? {
+            job: {
+              ...(worker.jobCode !== undefined ? { jobCode: { code: worker.jobCode } } : {}),
+              ...(worker.eeoClassificationCode !== undefined || worker.eeocClassificationCode !== undefined
+                ? {
+                    occupationalClassifications: [
+                      ...(worker.eeocClassificationCode !== undefined
+                        ? [{ classificationID: { code: 'EEOC' }, classificationCode: { code: worker.eeocClassificationCode } }]
+                        : []),
+                      ...(worker.eeoClassificationCode !== undefined
+                        ? [{ classificationID: { code: 'EEO' }, classificationCode: { code: worker.eeoClassificationCode } }]
+                        : []),
+                    ],
+                  }
+                : {}),
+            },
+          }
+        : {}),
+      ...(worker.reportsToPositionID !== undefined ? { reportsTo: { positionID: worker.reportsToPositionID } } : {}),
+      ...(worker.workerTypeCode !== undefined ? { workerTypeCode: { code: worker.workerTypeCode } } : {}),
+      managementPositionIndicator: worker.managementPositionIndicator ?? false,
+    };
+
+    const payrollProfile: Record<string, unknown> = {
+      payrollGroupCode: payroll.payrollGroupCode, // plain string on the wire (recorded)
+      ...(payroll.payCycleCode !== undefined ? { payCycleCode: { code: payroll.payCycleCode } } : {}),
+      ...(payroll.payrollScheduleGroupCode !== undefined
+        ? { payrollScheduleGroupCode: payroll.payrollScheduleGroupCode }
+        : {}),
+      ...(payroll.customCodeFields !== undefined && payroll.customCodeFields.length > 0
+        ? {
+            customFieldGroup: {
+              codeFields: payroll.customCodeFields.map((f) => ({ nameCode: { code: f.nameCode }, code: f.code })),
+            },
+          }
+        : {}),
+    };
+
+    const taxProfile: Record<string, unknown> = {};
+    if (tax?.federal) {
+      const f = tax.federal;
+      taxProfile.usFederalTaxInstruction = {
+        federalIncomeTaxInstruction: {
+          ...(f.taxFilingStatusCode !== undefined ? { taxFilingStatusCode: { code: f.taxFilingStatusCode } } : {}),
+          ...(f.additionalTaxAmount !== undefined ? { additionalTaxAmount: { amount: f.additionalTaxAmount } } : {}),
+          ...(f.deductions !== undefined || f.dependents !== undefined
+            ? {
+                taxAllowances: [
+                  ...(f.deductions !== undefined
+                    ? [{ allowanceTypeCode: { code: 'Deductions' }, taxAllowanceAmount: { amount: f.deductions } }]
+                    : []),
+                  ...(f.dependents !== undefined
+                    ? [{ allowanceTypeCode: { code: 'Dependents' }, taxAllowanceAmount: { amount: f.dependents } }]
+                    : []),
+                ],
+              }
+            : {}),
+        },
+        multipleJobIndicator: f.multipleJobIndicator ?? false,
+      };
+    }
+    if (tax?.state) {
+      const s = tax.state;
+      const instructions: Array<Record<string, unknown>> = [];
+      if (s.workedInStateCode !== undefined) {
+        instructions.push({
+          stateCode: { code: s.workedInStateCode },
+          workedInJurisdictionIndicator: true,
+          ...(s.taxFilingStatusCode !== undefined ? { taxFilingStatusCode: { code: s.taxFilingStatusCode } } : {}),
+          ...(s.taxAllowanceQuantity !== undefined ? { taxAllowanceQuantity: s.taxAllowanceQuantity } : {}),
+          ...(s.additionalTaxAmount !== undefined ? { additionalTaxAmount: { amount: s.additionalTaxAmount } } : {}),
+        });
+      }
+      if (s.livedInStateCode !== undefined) {
+        instructions.push({ livedInJurisdictionIndicator: true, stateCode: { code: s.livedInStateCode } });
+      }
+      if (instructions.length > 0) taxProfile.usStateTaxInstructions = { stateIncomeTaxInstructions: instructions };
+    }
+
+    let applicantOnboarding: Record<string, unknown> = {
+      onboardingTemplateCode: { code: params.onboardingTemplateCode },
+      onboardingStatus: { statusCode: { code: 'inprogress' } },
+      applicantPayrollProfile: payrollProfile,
+      applicantPersonalProfile: personalProfile,
+      ...(Object.keys(taxProfile).length > 0 ? { applicantTaxProfile: taxProfile } : {}),
+      applicantWorkerProfile: workerProfile,
+    };
+    if (params.overrides) applicantOnboarding = deepMerge(applicantOnboarding, params.overrides);
+
+    const body = await this.postEvent('applicant.onboard', { applicantOnboarding });
+    return body ?? null;
   }
 }
