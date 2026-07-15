@@ -38,16 +38,16 @@ requirement as `smoke-library.ts`: the package must be on npm). Each
 `adp` as a resource picker for your ADP credentials. The parameter's type is
 named `CAdpCredentials` because Windmill prefixes custom resource types with
 `c_` (unless created with an admin override), and the TS type name must match
-the resource type for the picker to bind. Only `get-worker.ts`
-wires up a `WindmillTokenStore`; the rest construct `Client` without one and
-carry a one-line comment pointing back to the README's "Token stores"
-section — wire one up before scheduling these for real. ⚠️ marks scripts
-that write to your ADP tenant; run those against a test worker/applicant
-only.
+the resource type for the picker to bind. Every example constructs `Client`
+with the shared `WindmillTokenStore`, sourced from the resource's
+`token_cache_path` field — add that string field to your Windmill resource
+type (and set it on the resource, e.g. `f/adp/access_token_cache`) before
+running these. ⚠️ marks scripts that write to your ADP tenant; run those
+against a test worker/applicant only.
 
 | File | Method | What it does |
 |---|---|---|
-| `get-worker.ts` | `Worker.get` | Fetch a worker by associate OID or by SSN; shows the shared `WindmillTokenStore` |
+| `get-worker.ts` | `Worker.get` | Fetch a worker by associate OID or by SSN |
 | `search-workers.ts` | `Worker.search` → `page`/`pages` | A single filtered page, or a while-loop walk across every page via the `WorkerPage` protocol |
 | `get-worker-photo.ts` | `Worker.getPhoto` | Content type + byte length only (bytes withheld to keep the step result small) |
 | `get-event-meta.ts` | `Worker.eventMeta` | Lists an event's client-side validation rule paths (required/readOnly/hidden/codeList/pattern/length) |

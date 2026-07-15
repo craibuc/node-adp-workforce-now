@@ -13,6 +13,8 @@ type CAdpCredentials = {
   client_secret: string;
   certificate_file: string; // PEM, raw or base64-encoded
   private_key_file: string; // PEM, raw or base64-encoded
+  // Windmill variable path for the shared token cache, e.g. "f/adp/access_token_cache".
+  token_cache_path: string;
 };
 
 function pem(input: string): string {

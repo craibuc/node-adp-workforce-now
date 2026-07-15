@@ -5,6 +5,7 @@
 // the tenant's allowed reason/type codes, before wiring up a new event.
 
 import { Client } from '@craibuc/adp-workforce-now';
+import { WindmillTokenStore } from '@craibuc/adp-workforce-now/windmill';
 import type { SupportedEvent } from '@craibuc/adp-workforce-now';
 
 type CAdpCredentials = {
@@ -12,6 +13,8 @@ type CAdpCredentials = {
   client_secret: string;
   certificate_file: string; // PEM, raw or base64-encoded (auto-detected)
   private_key_file: string; // PEM, raw or base64-encoded (auto-detected)
+  // Windmill variable path for the shared token cache, e.g. "f/adp/access_token_cache".
+  token_cache_path: string;
 };
 
 export async function main(
@@ -29,8 +32,7 @@ export async function main(
 ) {
   const client = new Client(adp.certificate_file, adp.private_key_file, {
     credentials: { client_id: adp.client_id, client_secret: adp.client_secret },
-    // A shared token cache is recommended in production — see the README's
-    // "Token stores" section (WindmillTokenStore).
+    tokenStore: new WindmillTokenStore(adp.token_cache_path),
   });
 
   const meta = await client.worker.eventMeta(event, { forceRefresh });

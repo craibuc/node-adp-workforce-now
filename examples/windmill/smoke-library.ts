@@ -11,7 +11,7 @@
 //     @craibuc/adp-workforce-now@>=3).
 //
 // After the first run, check two things in the Windmill UI:
-//  - the variable at `tokenCachePath` was created with the SECRET flag set;
+//  - the variable at `adp.token_cache_path` was created with the SECRET flag set;
 //  - run the script a second time within the token's lifetime — the returned
 //    `expiresAt` should be UNCHANGED (cache reuse, no re-authentication).
 
@@ -23,17 +23,17 @@ type CAdpCredentials = {
   client_secret: string;
   certificate_file: string; // PEM, raw or base64-encoded (auto-detected)
   private_key_file: string; // PEM, raw or base64-encoded (auto-detected)
+  // Windmill variable path for the shared token cache, e.g. "f/adp/access_token_cache".
+  // Use a throwaway path on the first run so you can inspect what gets created.
+  token_cache_path: string;
 };
 
 export async function main(
   adp: CAdpCredentials,
-  // Windmill variable path for the shared token cache, e.g. "u/you/adp_token_cache".
-  // Use a throwaway path on the first run so you can inspect what gets created.
-  tokenCachePath: string,
   // Optional: a known associateOID to verify a real API read.
   associateOID?: string,
 ) {
-  const store = new WindmillTokenStore(tokenCachePath);
+  const store = new WindmillTokenStore(adp.token_cache_path);
   const client = new Client(adp.certificate_file, adp.private_key_file, {
     credentials: { client_id: adp.client_id, client_secret: adp.client_secret },
     tokenStore: store,
