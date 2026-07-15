@@ -42,6 +42,16 @@ describe('WindmillTokenStore', () => {
     expect(await store.get()).toBeUndefined();
   });
 
+  it('rejects a missing, empty, or non-string variable path at construction', () => {
+    // A resource missing its token_cache_path field arrives as undefined and
+    // previously crashed layers down in windmill-client ("undefined is not an
+    // object (evaluating 's.startsWith')") — fail fast with a readable error.
+    expect(() => new WindmillTokenStore(undefined as unknown as string)).toThrow(/variable path/i);
+    expect(() => new WindmillTokenStore('')).toThrow(/variable path/i);
+    expect(() => new WindmillTokenStore('   ')).toThrow(/variable path/i);
+    expect(() => new WindmillTokenStore(null as unknown as string)).toThrow(/variable path/i);
+  });
+
   it('writes the exact interop JSON shape, creating the variable as secret', async () => {
     const store = new WindmillTokenStore('u/some/path');
     await store.set({ access_token: 'tok', expires_at: 1750000000 });

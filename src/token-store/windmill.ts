@@ -7,7 +7,17 @@ import type { CachedToken, TokenStore } from './types.js';
  * hence the dynamic import.
  */
 export class WindmillTokenStore implements TokenStore {
-  constructor(private readonly variablePath: string) {}
+  constructor(private readonly variablePath: string) {
+    // Fail fast with a readable error: an undefined/empty path (e.g. a
+    // resource missing its token_cache_path field) otherwise surfaces as a
+    // cryptic TypeError deep inside windmill-client on first use.
+    if (typeof variablePath !== 'string' || variablePath.trim() === '') {
+      throw new Error(
+        'WindmillTokenStore requires a non-empty variable path (e.g. "f/adp/access_token_cache") — got ' +
+          (typeof variablePath === 'string' ? 'an empty string' : String(variablePath)),
+      );
+    }
+  }
 
   async get(): Promise<CachedToken | undefined> {
     const wmill = await import('windmill-client');
