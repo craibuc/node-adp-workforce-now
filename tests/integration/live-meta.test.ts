@@ -202,11 +202,32 @@ describe.skipIf(!hasCredentials)('live event metas', () => {
       credentials: { client_id: ADP_CLIENT_ID!, client_secret: ADP_CLIENT_SECRET! },
     }));
 
+  // ADP's meta service exhibits transient 404/504s (observed 2026-07-15:
+  // worker.hire meta answered 404, 504, then healthy twice within a minute).
+  // The gate retries so weather doesn't red a release run; a PERSISTENTLY
+  // failing meta still fails the gate.
+  const fetchMetaWithRetry = async (event: string, attempts = 3) => {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      try {
+        return await liveClient().worker.eventMeta(event, { forceRefresh: attempt > 0 });
+      } catch (error) {
+        lastError = error;
+        if (!(error instanceof AdpError)) throw error;
+        if (attempt < attempts - 1) {
+          console.warn(`${event}: meta fetch attempt ${attempt + 1} failed (${error.statusCode}) — retrying`);
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+        }
+      }
+    }
+    throw lastError;
+  };
+
   for (const event of EVENTS) {
     it(`fetches, parses, and checks structural coverage for the ${event} meta`, async () => {
       let meta;
       try {
-        meta = await liveClient().worker.eventMeta(event);
+        meta = await fetchMetaWithRetry(event);
       } catch (error) {
         if (!(error instanceof AdpError)) throw error;
         if (KNOWN_UNAVAILABLE.has(event)) {
@@ -233,11 +254,11 @@ describe.skipIf(!hasCredentials)('live event metas', () => {
       if (uncovered.length > 0) console.log(`  uncovered: ${uncovered.join(', ')}`);
 
       expect(fraction).toBeGreaterThan(0.3);
-    }, 20000);
+    }, 60000);
   }
 
   it('worker.read meta parses (single overdeclared queryParameter rule)', async () => {
-    const meta = await liveClient().worker.eventMeta('worker.read');
+    const meta = await fetchMetaWithRetry('worker.read');
     expect(meta.raw).toBeTruthy();
     expect(meta.rules.has('transform:/queryParameter')).toBe(true);
   }, 20000);
