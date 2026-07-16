@@ -7,6 +7,14 @@ export interface WorkerQuery {
   status?: string;       // workAssignments/assignmentStatus/statusCode/codeValue
   /** Raw OData $filter escape hatch — used verbatim as the server predicate. */
   filter?: string;
+  /**
+   * $select projection paths matching the worker graph, e.g.
+   * ['workers/associateOID', 'workers/person/legalName'] (bare paths without
+   * the workers/ prefix also work — live-verified 2026-07-16, as is composing
+   * with $filter). Caller's responsibility: a name query's residual filtering
+   * reads person/legalName, so keep it in the projection.
+   */
+  select?: string[];
   pageSize?: number;     // default 100
 }
 
@@ -99,6 +107,7 @@ export class WorkerSearch {
     const { serverFilter, residual } = planQuery(this.query);
     let path = `/hr/v2/workers?$top=${pageSize}&$skip=${index * pageSize}`;
     if (serverFilter !== undefined) path += `&$filter=${encodeURIComponent(serverFilter)}`;
+    if (this.query.select?.length) path += `&$select=${encodeURIComponent(this.query.select.join(','))}`;
     const response = (await this.client.get(path)) as { workers?: WorkerRecord[] } | undefined;
     const fetched = response?.workers;
     const done = !fetched || fetched.length === 0;

@@ -79,6 +79,23 @@ describe('WorkerSearch.page', () => {
     );
   });
 
+  it('select is joined and percent-encoded into $select, composing with $filter', async () => {
+    // Live-probed 2026-07-16: /hr/v2/workers honors $select (workers/-prefixed
+    // or bare paths both work) and it composes with $filter in one request.
+    const { client, calls } = makeClient([TOKEN_RESPONSE, { status: 200, json: { workers: [] } }]);
+    await new WorkerSearch(client, {
+      status: 'A',
+      select: ['workers/associateOID', 'workers/person/legalName', 'workers/workerStatus'],
+    }).page(0);
+    expect(calls[1].url).toBe(
+      'https://api.adp.com/hr/v2/workers?$top=100&$skip=0' +
+        '&$filter=' +
+        encodeURIComponent("workers/workAssignments/assignmentStatus/statusCode/codeValue eq 'A'") +
+        '&$select=' +
+        encodeURIComponent('workers/associateOID,workers/person/legalName,workers/workerStatus'),
+    );
+  });
+
   it('204 → done page with empty workers and null next', async () => {
     const { client } = makeClient([TOKEN_RESPONSE, { status: 204 }]);
     const page = await new WorkerSearch(client).page(5);
