@@ -60,6 +60,35 @@ describe('planQuery — single server predicate with precedence', () => {
       "workers/workAssignments/assignmentStatus/statusCode/codeValue eq 'T'",
     );
   });
+
+  it('nullish values are treated as omitted keys, not crashes', () => {
+    // Windmill (and other flow engines) pass null — not undefined — for empty
+    // optional step params, so keys arrive present-but-null. Previously this
+    // crashed in odataEscape (null.replaceAll).
+    const plan = planQuery({
+      status: null,
+      familyName: null,
+      givenName: null,
+      filter: null,
+      select: null,
+      pageSize: null,
+    } as never);
+    expect(plan.serverFilter).toBeUndefined();
+    expect(plan.residual(w('A') as never)).toBe(true);
+
+    // null filter must not block a real field from becoming the server predicate
+    expect(planQuery({ filter: null, status: 'A' } as never).serverFilter).toBe(
+      "workers/workAssignments/assignmentStatus/statusCode/codeValue eq 'A'",
+    );
+  });
+});
+
+describe('WorkerSearch.page with nullish query values', () => {
+  it('null select and null pageSize behave as omitted', async () => {
+    const { client, calls } = makeClient([TOKEN_RESPONSE, { status: 200, json: { workers: [] } }]);
+    await new WorkerSearch(client, { status: null, select: null, pageSize: null } as never).page(0);
+    expect(calls[1].url).toBe('https://api.adp.com/hr/v2/workers?$top=100&$skip=0');
+  });
 });
 
 describe('WorkerSearch.page', () => {

@@ -67,23 +67,23 @@ export function planQuery(query: WorkerQuery): {
   const residuals: Residual[] = [];
   let serverFilter: string | undefined;
 
-  if (query.filter !== undefined) serverFilter = query.filter;
+  if (query.filter != null) serverFilter = query.filter;
 
-  if (query.familyName !== undefined) {
+  if (query.familyName != null) {
     if (serverFilter === undefined) {
       serverFilter = `workers/person/legalName/familyName1 eq '${odataEscape(query.familyName)}'`;
     } else {
       residuals.push((w) => matchesFamilyName(w, query.familyName!));
     }
   }
-  if (query.givenName !== undefined) {
+  if (query.givenName != null) {
     if (serverFilter === undefined) {
       serverFilter = `workers/person/legalName/givenName eq '${odataEscape(query.givenName)}'`;
     } else {
       residuals.push((w) => matchesGivenName(w, query.givenName!));
     }
   }
-  if (query.status !== undefined) {
+  if (query.status != null) {
     if (serverFilter === undefined) {
       serverFilter = `workers/workAssignments/assignmentStatus/statusCode/codeValue eq '${odataEscape(query.status)}'`;
     } else {
